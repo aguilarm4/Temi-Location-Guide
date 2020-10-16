@@ -5,6 +5,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.util.ArrayList;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
@@ -39,6 +41,7 @@ public class LocationsFragment extends Fragment {
             }
         });
 
+
         mRecyclerView = view.findViewById(R.id.locations_recycler_view);
 
         // use this setting to improve performance if you know that changes
@@ -48,14 +51,39 @@ public class LocationsFragment extends Fragment {
         mLayoutManager = new GridLayoutManager(getActivity(), 2);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        String[] locations = {"Shahin Mastian", "Bryan Sastokas", "Doug Anderson",
-                "Printer", "Chandel Buelna", "Tiffany Gaw", "Katie Lau", "Bathroom", "Kitchen" };
+        ArrayList<String> locations = new ArrayList<>();
+        locations.add("Shahin Mastian");
+        locations.add("Bryan Sastokas");
+        locations.add("Doug Anderson");
+        locations.add("Printer");
+        locations.add("Chandel Buelna");
+        locations.add("Tiffany Gaw");
+        locations.add("Katie Lau");
+        locations.add("Bathroom");
+
 
         // specify an adapter (see also next example)
         mAdapter = new LocationsAdapter(locations);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                ((LocationsAdapter) mAdapter).filter(query);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                ((LocationsAdapter) mAdapter).filter(newText);
+                return true;
+            }
+        });
+
         mRecyclerView.setAdapter(mAdapter);
 
         // Inflate the layout for this fragment
         return view;
     }
+
+    // TO-DO Create setupSearchView() and clean up your code.
 }

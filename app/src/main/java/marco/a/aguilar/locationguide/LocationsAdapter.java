@@ -5,15 +5,42 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+
 import androidx.recyclerview.widget.RecyclerView;
 
 public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.LocationsViewHolder> {
 
-    private String[] mLocations;
+    private ArrayList<String> mLocations;
+    // Used for filter()
+    private ArrayList<String> mLocationsCopy;
+
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public LocationsAdapter(String[] locations) {
+    public LocationsAdapter(ArrayList<String> locations) {
         mLocations = locations;
+
+        mLocationsCopy = new ArrayList<>();
+        mLocationsCopy.addAll(mLocations);
+    }
+
+    // Code taken from:
+    // https://stackoverflow.com/questions/30398247/how-to-filter-a-recyclerview-with-a-searchview
+    // However, onQueryTextSubmit() should return false, or else keyboard won't close when clicking the
+    // search button.
+    public void filter(String text) {
+        mLocations.clear();
+        if(text.isEmpty()){
+            mLocations.addAll(mLocationsCopy);
+        } else{
+            text = text.toLowerCase();
+            for(String location: mLocationsCopy){
+                if(location.toLowerCase().contains(text)){
+                    mLocations.add(location);
+                }
+            }
+        }
+        notifyDataSetChanged();
     }
 
     // Create new views (invoked by the layout manager)
@@ -33,13 +60,13 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
     public void onBindViewHolder(LocationsViewHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        holder.textView.setText(mLocations[position]);
+        holder.textView.setText(mLocations.get(position));
 
     }
 
     @Override
     public int getItemCount() {
-        return mLocations.length;
+        return mLocations.size();
     }
 
 
