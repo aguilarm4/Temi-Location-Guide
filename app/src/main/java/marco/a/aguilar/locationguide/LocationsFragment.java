@@ -1,11 +1,18 @@
 package marco.a.aguilar.locationguide;
 
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.robotemi.sdk.Robot;
+import com.robotemi.sdk.listeners.OnRobotReadyListener;
+
 import java.util.ArrayList;
+import java.util.List;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
@@ -13,15 +20,25 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-public class LocationsFragment extends Fragment {
+import static android.content.ContentValues.TAG;
 
+public class LocationsFragment extends Fragment
+    implements OnRobotReadyListener {
+
+    // RecyclerView
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
+    private ArrayList<String> mLocations;
+
+    // Temi
+    private Robot mRobot;
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
     }
 
     @Override
@@ -29,6 +46,8 @@ public class LocationsFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         View view = layoutInflater.inflate(R.layout.fragment_locations, container, false);
+
+        mRobot = Robot.getInstance();
 
         // This will stop working if user rotates the device...need to do more research on this.
         // This is used to make the whole search bar clickable.
@@ -51,19 +70,12 @@ public class LocationsFragment extends Fragment {
         mLayoutManager = new GridLayoutManager(getActivity(), 2);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        ArrayList<String> locations = new ArrayList<>();
-        locations.add("Shahin Mastian");
-        locations.add("Bryan Sastokas");
-        locations.add("Doug Anderson");
-        locations.add("Printer");
-        locations.add("Chandel Buelna");
-        locations.add("Tiffany Gaw");
-        locations.add("Katie Lau");
-        locations.add("Bathroom");
+        mLocations = new ArrayList<>(mRobot.getLocations());
+
 
 
         // specify an adapter (see also next example)
-        mAdapter = new LocationsAdapter(locations);
+        mAdapter = new LocationsAdapter(mLocations);
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -83,6 +95,47 @@ public class LocationsFragment extends Fragment {
 
         // Inflate the layout for this fragment
         return view;
+    }
+
+    public void onStart() {
+        super.onStart();
+        Robot.getInstance().addOnRobotReadyListener(this);
+    }
+
+    public void onStop() {
+        super.onStop();
+        Robot.getInstance().removeOnRobotReadyListener(this);
+    }
+
+    /**
+     *
+     * Needed to make onStart and onStop public for this to work. Now the mLocations
+     * list has the right amount of items (16), the only issue now is updating the RecyclerView
+     * grid items via notifyDataSetChanged.
+     */
+
+    @Override
+    public void onRobotReady(boolean isReady) {
+        if (isReady) {
+            try {
+                /**
+                 * Had to make mLocations an ArrayList or else clear() and
+                 * addAll() didn't work properly and the app would crash.
+                 */
+                mLocations.clear();
+                mLocations.addAll(mRobot.getLocations());
+
+                mAdapter.notifyDataSetChanged();
+
+
+                Log.d(TAG, "onRobotReady: locations size: " + mLocations.size());
+
+                final ActivityInfo activityInfo = getActivity().getPackageManager().getActivityInfo(getActivity().getComponentName(), PackageManager.GET_META_DATA);
+                mRobot.onStart(activityInfo);
+            } catch (PackageManager.NameNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     // TO-DO Create setupSearchView() and clean up your code.
