@@ -1,6 +1,8 @@
 package marco.a.aguilar.locationguide;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,8 +12,12 @@ import android.widget.Toast;
 import com.robotemi.sdk.Robot;
 import com.robotemi.sdk.listeners.OnRobotReadyListener;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 public class NavigationCompleteFragment extends Fragment implements OnRobotReadyListener {
 
@@ -55,8 +61,51 @@ public class NavigationCompleteFragment extends Fragment implements OnRobotReady
         if(isReady) {
             // Tilt Robot head so the user doesn't have a hard time pressing buttons.
             mRobot.tiltAngle(55);
+
+            navigationCompletePrompt();
         }
 
+    }
+
+    /**
+     * Wait 3 seconds after saying "We have arrived" to say "Is there anything else I can help you with"
+     * for the FIRST time only, then after we wait 10 seconds before asking again and so on.
+     */
+    private void navigationCompletePrompt() {
+        Toast.makeText(getActivity(), "We have arrived", Toast.LENGTH_SHORT).show();
+
+        final Handler handler = new Handler(Looper.getMainLooper());
+
+        final int[] counter = {0};
+
+        Timer timer = new Timer();
+        TimerTask askUserIfFinished = new TimerTask() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    public void run() {
+
+                        if(counter[0] < 3) {
+                            Toast.makeText(getActivity(), "Is there anything else I can help you with?", Toast.LENGTH_SHORT).show();
+                        } else {
+                            goHome();
+                            timer.cancel();
+                        }
+
+                        counter[0]++;
+
+                    }
+                });
+            }
+        };
+        timer.schedule(askUserIfFinished, 3000, 12000);
+
+    }
+
+    private void goHome() {
+        Toast.makeText(getActivity(), "Going back to Home Base!", Toast.LENGTH_SHORT).show();
+
+        // Go to Home Base and only on arrival go back to Locations Fragment.
     }
 
     private void initButtons(View view) {
@@ -73,7 +122,7 @@ public class NavigationCompleteFragment extends Fragment implements OnRobotReady
         noButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getActivity(), "Going back to Home Base!", Toast.LENGTH_SHORT).show();
+                goHome();
             }
         });
     }

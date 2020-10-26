@@ -22,6 +22,7 @@ import java.util.TimerTask;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -163,46 +164,15 @@ public class LocationsFragment extends Fragment
                 " descriptionId: " + descriptionId + " description: " + description);
 
         if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE)) {
-            // todo: Move this code to next Fragment. NavigationCompleteFragment
-            navigationCompletePrompt();
+            goToNavigationCompleteFragment();
         }
 
     }
 
-
-    /**
-     * Wait 3 seconds after saying "We have arrived" to say "Is there anything else I can help you with"
-     * for the FIRST time only, then after we wait 10 seconds before asking again and so on.
-     */
-    private void navigationCompletePrompt() {
-        Toast.makeText(getActivity(), "We have arrived", Toast.LENGTH_SHORT).show();
-
-        final Handler handler = new Handler(Looper.getMainLooper());
-
-        final int[] counter = {0};
-
-        Timer timer = new Timer();
-        TimerTask askUserIfFinished = new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    public void run() {
-
-                        if(counter[0] < 5) {
-                            Toast.makeText(getActivity(), "Is there anything else I can help you with?", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(getActivity(), "Going back home!", Toast.LENGTH_SHORT).show();
-                            timer.cancel();
-                        }
-
-                        counter[0]++;
-
-                    }
-                });
-            }
-        };
-        timer.schedule(askUserIfFinished, 3000, 12000);
-
+    private void goToNavigationCompleteFragment() {
+        final FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragment_container, new NavigationCompleteFragment());
+        transaction.commit();
     }
 
 
