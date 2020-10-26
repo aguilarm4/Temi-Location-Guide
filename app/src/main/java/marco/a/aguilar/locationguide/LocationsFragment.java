@@ -130,6 +130,9 @@ public class LocationsFragment extends Fragment
     public void onRobotReady(boolean isReady) {
         if (isReady) {
             try {
+                // Tilt Robot head so the user doesn't have a hard time pressing buttons.
+                mRobot.tiltAngle(55);
+
                 /**
                  * Had to make mLocations an ArrayList or else clear() and
                  * addAll() didn't work properly and the app would crash.

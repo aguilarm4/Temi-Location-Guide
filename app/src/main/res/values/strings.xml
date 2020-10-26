@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Location Guide</string>
+
+    <string name="nav_complete_prompt">Is there anything else I can help you with?</string>
+
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>
