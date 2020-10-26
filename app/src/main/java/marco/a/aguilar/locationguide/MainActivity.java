@@ -15,7 +15,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        displayLocations();
+//        displayLocations();
+        displayNavigationCompletePrompt();
     }
 
     // Use Fragment Transaction to go to LocationsFragment
@@ -25,6 +26,16 @@ public class MainActivity extends AppCompatActivity {
 
         LocationsFragment locationsFragment = new LocationsFragment();
         fragmentTransaction.add(R.id.fragment_container, locationsFragment);
+        fragmentTransaction.commit();
+    }
+
+    // Delete later, using for testing purposes only.
+    private void displayNavigationCompletePrompt() {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+        NavigationCompleteFragment navigationCompleteFragment = new NavigationCompleteFragment();
+        fragmentTransaction.add(R.id.fragment_container, navigationCompleteFragment);
         fragmentTransaction.commit();
     }
 }

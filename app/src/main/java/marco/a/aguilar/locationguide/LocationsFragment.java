@@ -37,7 +37,7 @@ import androidx.recyclerview.widget.RecyclerView;
  * goToLocation(String location) with inside the onClick listener. (DONE)
  *
  * 3) Implement OnGoToLocationStatusChangedListener inside this fragment
- * and print out the "status" value
+ * and print out the "status" value (DONE)
  *
  * 4) Make squares smaller in order to display more items, since Shahin wants there to
  * be more names displayed.
@@ -47,11 +47,7 @@ import androidx.recyclerview.widget.RecyclerView;
  * add the Speech dialog later and just add it onto our logic. Just make sure
  * you write clean code. Remember that this will toggle autoReturn and will need
  * to prompt the user 3 times (every 10 seconds). So maybe we should only stay inside
- * this fragment for 30 seconds before going back to the LocationsFragment.
- *
- * We can use a counter or some kind of increment token so we reach three 10 second function
- * calls
- * https://stackoverflow.com/questions/3072173/how-to-call-a-method-after-a-delay-in-android
+ * this NavigationCompleteFragment for 30 seconds before going back to the LocationsFragment.
  *
  * For now, since we don't have the voice dialog implemented, just show a Toast.LONG that
  * says "You still there?" or something like that.
@@ -76,7 +72,6 @@ public class LocationsFragment extends Fragment
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
     }
 
 
