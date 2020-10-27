@@ -8,6 +8,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.robotemi.sdk.Robot;
+import com.robotemi.sdk.TtsRequest;
 
 import java.util.ArrayList;
 
@@ -103,6 +104,10 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
                 @Override
                 public void onClick(View view) {
                     String location = textView.getText().toString();
+
+                    // Robot asks users to follow
+                    TtsRequest request = TtsRequest.create("Please follow me.", false);
+                    mRobot.speak(request);
 
                     mRobot.goTo(location);
 
