@@ -86,7 +86,7 @@ public class LocationsFragment extends Fragment
         // in content do not change the layout size of the RecyclerView.
         mRecyclerView.setHasFixedSize(true);
 
-        mLayoutManager = new GridLayoutManager(getActivity(), 2);
+        mLayoutManager = new GridLayoutManager(getActivity(), 3);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         // Should return 0 locations at first, until robot is ready.
