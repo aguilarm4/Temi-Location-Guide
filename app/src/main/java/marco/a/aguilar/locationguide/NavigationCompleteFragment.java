@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import com.robotemi.sdk.Robot;
 import com.robotemi.sdk.TtsRequest;
+import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener;
 import com.robotemi.sdk.listeners.OnRobotReadyListener;
 
 import org.jetbrains.annotations.NotNull;
@@ -24,7 +25,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 public class NavigationCompleteFragment extends Fragment
-        implements OnRobotReadyListener, Robot.AsrListener {
+        implements OnRobotReadyListener, Robot.AsrListener, OnGoToLocationStatusChangedListener {
 
     private static final String TAG = "NavCompleteFragment";
     private static final String HOME_BASE = "urbes";
@@ -55,6 +56,7 @@ public class NavigationCompleteFragment extends Fragment
         super.onStart();
         Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addAsrListener(this);
+        Robot.getInstance().addOnGoToLocationStatusChangedListener(this);
     }
 
 
@@ -62,6 +64,7 @@ public class NavigationCompleteFragment extends Fragment
         super.onStop();
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeAsrListener(this);
+        Robot.getInstance().removeOnGoToLocationStatusChangedListener(this);
     }
 
     /**
@@ -76,6 +79,23 @@ public class NavigationCompleteFragment extends Fragment
             mRobot.tiltAngle(55);
 
             navigationCompletePrompt();
+        }
+
+    }
+
+    @Override
+    public void onGoToLocationStatusChanged(String location, String status, int descriptionId, String description) {
+        Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
+                " descriptionId: " + descriptionId + " description: " + description);
+
+
+        /**
+         * Only go to LocationFragment when the user is completing a trip to HOME_BASE
+         */
+        if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && location.equals(HOME_BASE)) {
+            // Timer.cancel() called twice but after arriving to HOME_BASE but this is okay, documentation
+            // says it will have no effect.
+            goToLocationsFragment();
         }
 
     }
@@ -102,7 +122,7 @@ public class NavigationCompleteFragment extends Fragment
 
         } else if (asrResult.toLowerCase().contains("yes")) {
 
-            goToLocationFragment();
+            goToLocationsFragment();
 
         } else {
             TtsRequest request = TtsRequest.create("I'm sorry I couldn't understand. Please respond" +
@@ -170,7 +190,7 @@ public class NavigationCompleteFragment extends Fragment
         mRobot.goTo(HOME_BASE);
 
         /**
-         * todo: Go to Home Base and only on arrival go back to Locations Fragment.
+         * todo: Go to HOME_BASE and only on arrival go back to Locations Fragment.
          * I'm not 100% sure if I need to do this though, maybe when the Robot goes
          * to Home Base it'll do it automatically, so save this for later.
          *
@@ -188,7 +208,7 @@ public class NavigationCompleteFragment extends Fragment
      * Leave the "Please select a location" speech for when the
      * user enters to LocationsFragment.
      */
-    private void goToLocationFragment() {
+    private void goToLocationsFragment() {
 
         mTimer.cancel();
 
@@ -205,7 +225,7 @@ public class NavigationCompleteFragment extends Fragment
         yesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                goToLocationFragment();
+                goToLocationsFragment();
             }
         });
 

@@ -167,6 +167,12 @@ public class LocationsFragment extends Fragment
             goToNavigationCompleteFragment();
         }
 
+        // In case a human is in the way.
+        if(description.equals("Height Obstacle")) {
+            TtsRequest request = TtsRequest.create("Excuse me.", false);
+            mRobot.speak(request);
+        }
+
     }
 
     private void goToNavigationCompleteFragment() {
