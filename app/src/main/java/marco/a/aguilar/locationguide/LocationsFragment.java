@@ -130,6 +130,10 @@ public class LocationsFragment extends Fragment
                 // Tilt Robot head so the user doesn't have a hard time pressing buttons.
                 mRobot.tiltAngle(55);
 
+                // Temi will say this every time the user goes to LocationsFragment
+                TtsRequest request = TtsRequest.create("Please select a location so that I can guide you.", false);
+                mRobot.speak(request);
+
                 /**
                  * Had to make mLocations an ArrayList or else clear() and
                  * addAll() didn't work properly and the app would crash.

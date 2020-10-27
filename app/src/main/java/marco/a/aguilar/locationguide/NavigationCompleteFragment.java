@@ -27,6 +27,7 @@ public class NavigationCompleteFragment extends Fragment
         implements OnRobotReadyListener, Robot.AsrListener {
 
     private static final String TAG = "NavCompleteFragment";
+    private static final String HOME_BASE = "urbes";
 
     // Member variables
     Robot mRobot;
@@ -79,34 +80,35 @@ public class NavigationCompleteFragment extends Fragment
 
     }
 
+
     @Override
     public void onAsrResult(@NotNull String asrResult) {
         Log.d(TAG, "onAsrResult: " + asrResult);
 
+        /**
+         * IMPORTANT!!! We need to call finishConversation() or else
+         * Temi will try to interpret the answer itself and say something
+         * like "I'm not sure how to help with that" or something along those
+         * lines. So for future reference, whenever you use the onAsrResult()
+         * method with the Robot.askQuestion() method you need to make sure you
+         * call finishConversation() right before you make the robot speak again.
+         * this is what has worked so far.
+         */
+        mRobot.finishConversation();
 
         if(asrResult.toLowerCase().contains("no")) {
-            mTimer.cancel();
-
-            /**
-             * IMPORTANT!!! We need to call finishConversation() or else
-             * Temi will try to interpret the answer itself and say something
-             * like "I'm not sure how to help with that" or something along those
-             * lines. So for future reference, whenever you use the onAsrResult()
-             * method with the Robot.askQuestion() method you need to make sure you
-             * call finishConversation() right before you make the robot speak again.
-             * this is what has worked so far.
-             */
-            mRobot.finishConversation();
 
             goToHomeBase();
 
         } else if (asrResult.toLowerCase().contains("yes")) {
+
             goToLocationFragment();
+
         } else {
-            // Ask question again, hopefully creating a loop.
-            mRobot.finishConversation();
+            TtsRequest request = TtsRequest.create("I'm sorry I couldn't understand. Please respond" +
+                    " with a yes or no.", false);
 
-
+            mRobot.speak(request);
         }
 
         /**
@@ -122,13 +124,9 @@ public class NavigationCompleteFragment extends Fragment
     }
 
     /**
-     * Wait 3 seconds after saying "We have arrived" to say "Is there anything else I can help you with"
-     * for the FIRST time only, then after we wait 10 seconds before asking again and so on.
+     * Waits 0 seconds before asking User if they need more help and repeats every 15 seconds.
      */
     private void navigationCompletePrompt() {
-
-        Log.d(TAG, "navigationCompletePrompt: Asking Question...");
-        mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
 
         final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -141,10 +139,10 @@ public class NavigationCompleteFragment extends Fragment
                     public void run() {
 
                         if(counter[0] < 3) {
-                            Toast.makeText(getActivity(), "Is there anything else I can help you with?", Toast.LENGTH_SHORT).show();
+                            // Ask question again
+                            mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
                         } else {
                             goToHomeBase();
-                            mTimer.cancel();
                         }
 
                         counter[0]++;
@@ -153,8 +151,12 @@ public class NavigationCompleteFragment extends Fragment
                 });
             }
         };
-        mTimer.schedule(askUserIfFinished, 3000, 12000);
-
+        /**
+         * Making this 15 seconds because the prompt stays on the screen for about 10
+         * seconds. This will give the User 5 seconds to click the buttons instead before
+         * asking again.
+         */
+        mTimer.schedule(askUserIfFinished, 0, 15000);
     }
 
     private void goToHomeBase() {
@@ -162,8 +164,10 @@ public class NavigationCompleteFragment extends Fragment
         TtsRequest request = TtsRequest.create("Goodbye, have a nice day.", false);
         mRobot.speak(request);
 
-        // Right now I'm simply making it go back to urbes.
-        mRobot.goTo("urbes");
+        mTimer.cancel();
+
+        // For now HOME_BASE is urbes.
+        mRobot.goTo(HOME_BASE);
 
         /**
          * todo: Go to Home Base and only on arrival go back to Locations Fragment.
@@ -172,6 +176,9 @@ public class NavigationCompleteFragment extends Fragment
          *
          * Might have to implement OnGoToLocationStatusChangedListener
          * to in order to go back to LocationsFragment (AKA HomeScreen in the future).
+         *
+         * You're going to have to check for "location" and only go back to LocationsFragment
+         * if status is COMPLETE and location is HOME_BASE
          */
     }
 
@@ -182,6 +189,9 @@ public class NavigationCompleteFragment extends Fragment
      * user enters to LocationsFragment.
      */
     private void goToLocationFragment() {
+
+        mTimer.cancel();
+
         final FragmentTransaction transaction = getFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, new LocationsFragment());
         transaction.commit();
