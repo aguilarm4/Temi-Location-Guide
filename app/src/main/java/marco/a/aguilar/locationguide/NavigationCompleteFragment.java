@@ -1,5 +1,6 @@
 package marco.a.aguilar.locationguide;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,6 +24,12 @@ import java.util.TimerTask;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+
+/**
+ * Possible Bug:
+ *      Shahin told the Robot to go to "maco" and I believe the robot only
+ *      asked ONCE if the user needed more help and then went back to HOME_BASE.
+ */
 
 public class NavigationCompleteFragment extends Fragment
         implements OnRobotReadyListener, Robot.AsrListener, OnGoToLocationStatusChangedListener {
@@ -95,7 +102,9 @@ public class NavigationCompleteFragment extends Fragment
         if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && location.equals(HOME_BASE)) {
             // Timer.cancel() called twice but after arriving to HOME_BASE but this is okay, documentation
             // says it will have no effect.
-            goToLocationsFragment();
+
+            goToHomeScreenActivity();
+
         }
 
     }
@@ -215,6 +224,12 @@ public class NavigationCompleteFragment extends Fragment
         final FragmentTransaction transaction = getFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, new LocationsFragment());
         transaction.commit();
+    }
+
+    private void goToHomeScreenActivity() {
+        mTimer.cancel();
+        Intent intent = new Intent(getActivity(), HomeScreenActivity.class);
+        startActivity(intent);
     }
 
 

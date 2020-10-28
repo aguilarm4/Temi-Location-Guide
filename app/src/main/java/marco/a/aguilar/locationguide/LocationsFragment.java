@@ -54,6 +54,7 @@ public class LocationsFragment extends Fragment
     implements OnRobotReadyListener, OnGoToLocationStatusChangedListener {
 
     private static final String TAG = "LocationsFragment";
+    private static final String HOME_BASE = "urbes";
 
     // RecyclerView
     private RecyclerView mRecyclerView;
@@ -160,10 +161,13 @@ public class LocationsFragment extends Fragment
 
     @Override
     public void onGoToLocationStatusChanged(String location, String status, int descriptionId, String description) {
+        // todo: Check what other "description" values there are. Shahin wants to know if
+        // Temi can detect moving obstacles.
         Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
                 " descriptionId: " + descriptionId + " description: " + description);
 
-        if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE)) {
+        // Only go to NavigationCompleteFragment if we are not arriving at HOME_BASE
+        if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && !location.equals(HOME_BASE)) {
             goToNavigationCompleteFragment();
         }
 

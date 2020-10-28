@@ -3,6 +3,11 @@
 
     <string name="nav_complete_prompt">Is there anything else I can help you with?</string>
 
+    <string name="nav_intro_prompt">Can I help you find your location?</string>
+
     <string name="yes">Yes</string>
     <string name="no">No</string>
+
+    <string name="welcome_text">May I help you?</string>
+
 </resources>

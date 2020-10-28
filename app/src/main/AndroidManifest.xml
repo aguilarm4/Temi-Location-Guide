@@ -9,22 +9,35 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
-        <meta-data
-            android:name="com.robotemi.sdk.metadata.SKILL"
-            android:value="@string/app_name" />
-
-        <meta-data
-            android:name="com.robotemi.sdk.metadata.KIOSK"
-            android:value="TRUE" />
-
-        <activity android:name=".MainActivity" android:configChanges="orientation|screenSize">
-
+        <activity
+            android:name=".HomeScreenActivity"
+            android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <meta-data
+            android:name="com.robotemi.sdk.metadata.SKILL"
+            android:value="@string/app_name" />
+        <meta-data
+            android:name="com.robotemi.sdk.metadata.KIOSK"
+            android:value="TRUE" />
+
+        <meta-data
+            android:name="@string/metadata_permissions"
+            android:value="com.robotemi.permission.settings" />
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize">
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
+
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
         </activity>
     </application>
 
