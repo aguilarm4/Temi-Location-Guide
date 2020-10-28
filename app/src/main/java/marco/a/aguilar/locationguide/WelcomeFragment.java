@@ -20,7 +20,11 @@ import org.jetbrains.annotations.NotNull;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
+
+/**
+ * todo: Create functionality where application checks if Robot is in Home Base,
+ * if not, then go to Home Base after waiting 1 minute or something.
+ */
 
 public class WelcomeFragment extends Fragment implements
         OnDetectionStateChangedListener, OnRobotReadyListener, Robot.AsrListener {
@@ -44,6 +48,15 @@ public class WelcomeFragment extends Fragment implements
         mRobot = Robot.getInstance();
         mHandler = new Handler(Looper.getMainLooper());
 
+        View exitView = view.findViewById(R.id.exit_view);
+        exitView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(getActivity(), "View Clicked!!", Toast.LENGTH_SHORT).show();
+                mRobot.showAppList();
+            }
+        });
+
         return view;
     }
 
@@ -54,6 +67,8 @@ public class WelcomeFragment extends Fragment implements
 
             // Tilt Robot head all up so that the text on the display is visible
             mRobot.tiltAngle(40);
+
+            mRobot.hideTopBar();
 
             /**
              * For some odd reason, changing this value to 1.0 made it work.
@@ -131,6 +146,10 @@ public class WelcomeFragment extends Fragment implements
     /**
      * Uses member variable mHandler to turn on Detection Mode again
      * if the user has not given a response in 15 seconds.
+     *
+     * todo: Change this to resetRobot() so that it checks if it's in home base
+     * too. If not then return to Home base and setDetectionMode on,
+     * if so, then just setDetectionMode on.
      */
     private void restartDetectionMode() {
         mHandler = new Handler(Looper.getMainLooper());

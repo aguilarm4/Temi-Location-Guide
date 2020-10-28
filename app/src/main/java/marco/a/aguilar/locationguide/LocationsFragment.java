@@ -24,30 +24,16 @@ import androidx.recyclerview.widget.RecyclerView;
 
 
 /**
- * This is what I think should happen next.
- * "Can I guide you to where you want to go??"
+ * todo: Add "You can scroll to select your location" dialog
  *
- * 1) Create onClick listeners for each button, printing
- * out a simple toast showing the name of a location. (DONE)
+ * IMPORTANT: SAVE THIS FEATURE FOR LATER AS A "NICE TO HAVE".
+ * Right now focus on getting all the small details as perfect as possible.
+ * todo: Add "search by voice" feature. Either do this in the searchView
+ * or through Temi's SDK. (Or both). You can also add a button that will
+ * ask the user to enter the person's name. ()
  *
- * 2) Maybe, pass the robot to the Adapter so that we can call
- * goToLocation(String location) with inside the onClick listener. (DONE)
  *
- * 3) Implement OnGoToLocationStatusChangedListener inside this fragment
- * and print out the "status" value (DONE)
  *
- * 4) Make squares smaller in order to display more items, since Shahin wants there to
- * be more names displayed.
- *
- * 5) Once #3 is done, create the Fragment that will display the 'Yes' and 'No'
- * buttons for the 'Do you need any more assistance?', and the logic. We can
- * add the Speech dialog later and just add it onto our logic. Just make sure
- * you write clean code. Remember that this will toggle autoReturn and will need
- * to prompt the user 3 times (every 10 seconds). So maybe we should only stay inside
- * this NavigationCompleteFragment for 30 seconds before going back to the LocationsFragment.
- *
- * For now, since we don't have the voice dialog implemented, just show a Toast.LONG that
- * says "You still there?" or something like that.
  */
 
 public class LocationsFragment extends Fragment
@@ -166,8 +152,15 @@ public class LocationsFragment extends Fragment
         Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
                 " descriptionId: " + descriptionId + " description: " + description);
 
-        // Only go to NavigationCompleteFragment if we are not arriving at HOME_BASE
+        /**
+         * Todo: *** Remove home base as an option on the application. ****
+         * Because this if statement will be entered if we are somewhere else, and
+         * someone decides to select "home base" as the destination.
+         *
+         * This will all occur after we change HOME_BASE to "home base" instead of "urbes"
+         */
         if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && !location.equals(HOME_BASE)) {
+            // Only go to NavigationCompleteFragment if we are not arriving at HOME_BASE
             goToNavigationCompleteFragment();
         }
 
