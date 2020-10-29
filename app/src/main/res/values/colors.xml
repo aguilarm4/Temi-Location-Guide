@@ -8,4 +8,6 @@
     <color name="grey">#f2f2f2</color>
     <color name="green">#2F9F44</color>
 
+    <color name="overlay_color">#5C5C5C</color>
+
 </resources>

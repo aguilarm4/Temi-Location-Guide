@@ -8,15 +8,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import com.robotemi.sdk.Robot;
 import com.robotemi.sdk.TtsRequest;
 import com.robotemi.sdk.listeners.OnDetectionStateChangedListener;
 import com.robotemi.sdk.listeners.OnRobotReadyListener;
-import com.robotemi.sdk.permission.Permission;
 
-import org.jetbrains.annotations.NotNull;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -52,7 +49,6 @@ public class WelcomeFragment extends Fragment implements
         exitView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getActivity(), "View Clicked!!", Toast.LENGTH_SHORT).show();
                 mRobot.showAppList();
             }
         });
@@ -70,48 +66,8 @@ public class WelcomeFragment extends Fragment implements
 
             mRobot.hideTopBar();
 
-            /**
-             * For some odd reason, changing this value to 1.0 made it work.
-             * I think I'm just going to not include the range for now.
-             *
-             * IMPORTANT:
-             *  Also, calling setDetectionMode(true, range) will turn on
-             *  the "Track User" feature until you manually turn it off.
-             *
-             *  The good news is that now we're getting printing out the log
-             *  for onDetectionStateChanged() (Meaning it's working now).
-             *
-             *  So I think all we have to do now is turn it off and go to the
-             *  next step.
-             *
-             *  IMPORTANT:
-             *      The steps I took were
-             *          1) Run the app on Temi
-             *          2) Turn on Kiosk Mode
-             *          3) Done
-             *
-             *      I didn't have to turn on Welcoming Mode or Greet Mode.
-             *      I just had to manually enable the Settings permission
-             *      for the app and turn on Kiosk Mode to make
-             *      setDetectionModeOn() work.
-             */
-
             mRobot.setDetectionModeOn(true);
 
-
-//            Log.d(TAG, "onRobotReady: Setting Detection Mode on");
-//            Log.d(TAG, "onRobotReady: isDetectionModeOn: " + mRobot.isDetectionModeOn());
-
-            Log.d(TAG, "onRobotReady: Checking if selectedKioskApp");
-            Log.d(TAG, "onRobotReady: isSelectedKioskApp(): " + mRobot.isSelectedKioskApp());
-
-            /**
-             * I had to manually go onto Settings -> Permissions -> Settings -> Location Guide
-             * to turn on the Settings permission. Now mRobot.checkSelfPermission(Permission.SETTINGS)
-             * is returning a value of 1 (AKA GRANTED)
-             */
-            Log.d(TAG, "onRobotReady: Checking for Settings permission....");
-            Log.d(TAG, "onRobotReady: " + mRobot.checkSelfPermission(Permission.SETTINGS));
         }
     }
 
@@ -174,7 +130,7 @@ public class WelcomeFragment extends Fragment implements
             mHandler.removeCallbacksAndMessages(null);
             restartDetectionMode();
 
-            TtsRequest request = TtsRequest.create("Have a nice day!", false);
+            TtsRequest request = TtsRequest.create("Have a nice day!", true);
             mRobot.speak(request);
 
         } else if (asrResult.toLowerCase().contains("yes")) {

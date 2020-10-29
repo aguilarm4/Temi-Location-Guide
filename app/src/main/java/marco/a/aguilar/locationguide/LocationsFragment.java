@@ -73,12 +73,17 @@ public class LocationsFragment extends Fragment
         // in content do not change the layout size of the RecyclerView.
         mRecyclerView.setHasFixedSize(true);
 
-        mLayoutManager = new GridLayoutManager(getActivity(), 3);
+        mLayoutManager = new GridLayoutManager(getActivity(), 4);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         // Should return 0 locations at first, until robot is ready.
         mLocations = new ArrayList<>(mRobot.getLocations());
 
+        /**
+         * We might have to create a method for the adapter that will hold
+         * a reference to the LocationsFragment view. This is so when we
+         * click one of the squares, we can make the overlay come up.
+         */
 
         // specify an adapter (see also next example)
         mAdapter = new LocationsAdapter(mLocations, mRobot);
@@ -118,7 +123,8 @@ public class LocationsFragment extends Fragment
                 mRobot.tiltAngle(55);
 
                 // Temi will say this every time the user goes to LocationsFragment
-                TtsRequest request = TtsRequest.create("Please select a location so that I can guide you.", false);
+                TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
+                        " enter a search if you'd like.", true);
                 mRobot.speak(request);
 
                 /**
@@ -166,7 +172,7 @@ public class LocationsFragment extends Fragment
 
         // In case a human is in the way.
         if(description.equals("Height Obstacle")) {
-            TtsRequest request = TtsRequest.create("Excuse me.", false);
+            TtsRequest request = TtsRequest.create("Excuse me.", true);
             mRobot.speak(request);
         }
 

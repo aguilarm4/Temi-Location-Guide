@@ -4,15 +4,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp">
+    android:layout_marginBottom="20dp">
 
     <androidx.cardview.widget.CardView
         android:id="@+id/card_view"
-        android:layout_height="350dp"
-        android:layout_width="390dp"
+        android:layout_height="250dp"
+        android:layout_width="290dp"
         android:layout_gravity="center"
-        android:layout_margin="10dp"
-        app:cardCornerRadius="6dp"
+        android:layout_marginBottom="10dp"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:clickable="true"
+        app:cardElevation="20dp"
+        app:cardCornerRadius="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -27,12 +30,11 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_above="@+id/button_start_navigation"
                 android:background="@color/black">
 
                 <ImageView
-                    android:layout_width="55dp"
-                    android:layout_height="55dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:scaleType="fitXY"
                     android:src="@mipmap/ic_metro"
                     android:layout_marginStart="4dp"
@@ -43,7 +45,7 @@
 
                 <TextView
                     android:id="@+id/location_text"
-                    android:textSize="40sp"
+                    android:textSize="35sp"
                     android:textStyle="bold"
                     android:textColor="@color/white"
                     android:layout_width="wrap_content"
@@ -53,19 +55,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
             </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-            <com.google.android.material.button.MaterialButton
-                android:layout_width="match_parent"
-                android:layout_height="65dp"
-                android:id="@+id/button_start_navigation"
-                android:text="Start Navigation"
-                android:textSize="20sp"
-                android:textColor="@color/white"
-                app:backgroundTint="@color/green"
-                android:background="@drawable/ripple"
-                android:layout_alignParentBottom="true"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Button" />
 
 
         </RelativeLayout>

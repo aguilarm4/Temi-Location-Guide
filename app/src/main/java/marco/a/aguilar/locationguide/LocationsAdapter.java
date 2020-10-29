@@ -3,9 +3,7 @@ package marco.a.aguilar.locationguide;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.robotemi.sdk.Robot;
 import com.robotemi.sdk.TtsRequest;
@@ -91,27 +89,23 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
         // each data item is just a string in this case
 
         public TextView textView;
-        public Button buttonStartNavigation;
 
         public LocationsViewHolder(View itemView) {
             super(itemView);
 
             textView = itemView.findViewById(R.id.location_text);
-            buttonStartNavigation = itemView.findViewById(R.id.button_start_navigation);
 
-
-            buttonStartNavigation.setOnClickListener(new View.OnClickListener() {
+            itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     String location = textView.getText().toString();
 
                     // Robot asks users to follow
-                    TtsRequest request = TtsRequest.create("Please follow me.", false);
+                    TtsRequest request = TtsRequest.create("Please follow me. I am going to " + location, true);
                     mRobot.speak(request);
 
                     mRobot.goTo(location);
 
-                    Toast.makeText(itemView.getContext(), "Navigating to " + location, Toast.LENGTH_LONG).show();
                 }
             });
         }
