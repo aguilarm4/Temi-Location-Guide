@@ -31,6 +31,11 @@ import androidx.fragment.app.FragmentTransaction;
  *      asked ONCE if the user needed more help and then went back to HOME_BASE.
  */
 
+/**
+ * So defintely need to figure out how to handle the repeated function calls
+ * better so there aren't any memory leaks.
+ */
+
 public class NavigationCompleteFragment extends Fragment
         implements OnRobotReadyListener, Robot.AsrListener, OnGoToLocationStatusChangedListener {
 
@@ -39,7 +44,7 @@ public class NavigationCompleteFragment extends Fragment
 
     // Member variables
     Robot mRobot;
-    Timer mTimer;
+    private RobotTimer mTimer;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -52,7 +57,7 @@ public class NavigationCompleteFragment extends Fragment
         View view = layoutInflater.inflate(R.layout.fragment_navigation_complete, container, false);
 
         mRobot = Robot.getInstance();
-        mTimer = new Timer();
+        mTimer = new RobotTimer();
 
         initButtons(view);
 
@@ -64,6 +69,10 @@ public class NavigationCompleteFragment extends Fragment
         Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addAsrListener(this);
         Robot.getInstance().addOnGoToLocationStatusChangedListener(this);
+
+        // If the app goes through onStop() for some reason, the Timer will stop all tasks
+        // so we use onStart() to restart the process of asking the user if they're done.
+        navigationCompletePrompt();
     }
 
 
@@ -72,6 +81,7 @@ public class NavigationCompleteFragment extends Fragment
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeAsrListener(this);
         Robot.getInstance().removeOnGoToLocationStatusChangedListener(this);
+        mTimer.cancel();
     }
 
     /**
@@ -135,7 +145,7 @@ public class NavigationCompleteFragment extends Fragment
 
         } else {
             TtsRequest request = TtsRequest.create("I'm sorry I couldn't understand. Please respond" +
-                    " with a yes or no.", false);
+                    " with a yes or no.", true);
 
             mRobot.speak(request);
         }
@@ -157,29 +167,7 @@ public class NavigationCompleteFragment extends Fragment
      */
     private void navigationCompletePrompt() {
 
-        final Handler handler = new Handler(Looper.getMainLooper());
-
-        final int[] counter = {0};
-
-        TimerTask askUserIfFinished = new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    public void run() {
-
-                        if(counter[0] < 3) {
-                            // Ask question again
-                            mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
-                        } else {
-                            goToHomeBase();
-                        }
-
-                        counter[0]++;
-
-                    }
-                });
-            }
-        };
+        TimerTask askUserIfFinished = startNavigationCompleteQuestion();
         /**
          * Making this 15 seconds because the prompt stays on the screen for about 10
          * seconds. This will give the User 5 seconds to click the buttons instead before
@@ -228,6 +216,7 @@ public class NavigationCompleteFragment extends Fragment
 
     private void goToHomeScreenActivity() {
         mTimer.cancel();
+
         Intent intent = new Intent(getActivity(), HomeScreenActivity.class);
         startActivity(intent);
     }
@@ -250,5 +239,39 @@ public class NavigationCompleteFragment extends Fragment
                 goToHomeBase();
             }
         });
+    }
+
+
+    private TimerTask startNavigationCompleteQuestion() {
+        final Handler handler = new Handler(Looper.getMainLooper());
+
+        final int[] counter = {0};
+
+        return new TimerTask() {
+            @Override
+            public void run() {
+                handler.post(new Runnable() {
+                    public void run() {
+
+                        if(counter[0] < 3) {
+                            // Ask question again
+                            mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
+                        } else {
+                            goToHomeBase();
+                        }
+
+                        counter[0]++;
+
+                    }
+                });
+            }
+        };
+    }
+
+    private static class RobotTimer extends Timer {
+
+        public RobotTimer() {
+        }
+
     }
 }

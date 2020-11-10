@@ -12,16 +12,29 @@ import java.util.ArrayList;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+/**
+ *
+ * todo
+ * Create onClickListener implementation inside LocationsFragment, it needs to take in a String location.
+ * So override OnCLick inside LocationsFragment. Then inside this adapter you create a constructor
+ * LocationsAdapter(locations, robot, onClickListner) (on LocationsFragment side you just initialize
+ * by doing LocationsAdapter(locations, robot, this)).
+ *
+ * Then in here you simply set it to the static member variable mOnClickListener.
+ * and in LocationsViewHolder you set the listener on the itemView and pass
+ * the String location value.
+ *
+ * Then on the LocationsFragment side, all you gotta do is use the "location" string
+ * to show the overlay, make the robot speak, and go to the location.
+ *
+ */
+
 public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.LocationsViewHolder> {
 
     private ArrayList<String> mLocations;
     // Used for filter()
     private ArrayList<String> mLocationsCopy;
 
-    /**
-     * I feel like making this static and public probably isn't a good idea
-     * or "good practice". Going to fix this later but for now I need this to work.
-     */
     public static Robot mRobot;
 
 

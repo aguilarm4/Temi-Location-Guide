@@ -8,19 +8,26 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.robotemi.sdk.Robot;
 import com.robotemi.sdk.TtsRequest;
 import com.robotemi.sdk.listeners.OnDetectionStateChangedListener;
 import com.robotemi.sdk.listeners.OnRobotReadyListener;
+import com.robotemi.sdk.permission.Permission;
 
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import marco.a.aguilar.locationguide.utils.RobotUtils;
 
 /**
  * todo: Create functionality where application checks if Robot is in Home Base,
  * if not, then go to Home Base after waiting 1 minute or something.
+ *
+ * I'm only calling checkDetectionModeRequirements() inside onRobotReady()
+ * and restartDetectionMode() because by the time the code executes any other code
+ * the developer or user should have already seen that something's wrong.
  */
 
 public class WelcomeFragment extends Fragment implements
@@ -29,7 +36,9 @@ public class WelcomeFragment extends Fragment implements
     private static final String TAG = "WelcomeFragment";
 
     Robot mRobot;
-    Handler mHandler;
+    // Made subclass static to prevent memory leaks. Since creating
+    // a simple non-static handler here will hold an implicit reference to the Activity.
+    private RobotHandler mHandler;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -43,7 +52,8 @@ public class WelcomeFragment extends Fragment implements
         View view = layoutInflater.inflate(R.layout.fragment_welcome, container, false);
 
         mRobot = Robot.getInstance();
-        mHandler = new Handler(Looper.getMainLooper());
+
+        mHandler = new RobotHandler(Looper.getMainLooper());
 
         View exitView = view.findViewById(R.id.exit_view);
         exitView.setOnClickListener(new View.OnClickListener() {
@@ -66,7 +76,23 @@ public class WelcomeFragment extends Fragment implements
 
             mRobot.hideTopBar();
 
-            mRobot.setDetectionModeOn(true);
+            if(RobotUtils.checkDetectionModeRequirements(mRobot)) {
+                mRobot.setDetectionModeOn(true);
+            } else {
+                /**
+                 * Check for Kiosk and Settings requirements, if not then present toast to
+                 * let Developers know
+                 */
+                if(!(mRobot.isSelectedKioskApp())) {
+                    Toast.makeText(getActivity(), "Must be selected as Kiosk app" +
+                            " to start detecting", Toast.LENGTH_LONG).show();
+                }
+
+                if(!(mRobot.checkSelfPermission(Permission.SETTINGS) == Permission.GRANTED)) {
+                    Toast.makeText(getActivity(), "Must enable Settings permission" +
+                            " to start detecting", Toast.LENGTH_LONG).show();
+                }
+            }
 
         }
     }
@@ -100,19 +126,18 @@ public class WelcomeFragment extends Fragment implements
     }
 
     /**
-     * Uses member variable mHandler to turn on Detection Mode again
-     * if the user has not given a response in 15 seconds.
-     *
      * todo: Change this to resetRobot() so that it checks if it's in home base
      * too. If not then return to Home base and setDetectionMode on,
      * if so, then just setDetectionMode on.
      */
     private void restartDetectionMode() {
-        mHandler = new Handler(Looper.getMainLooper());
+        mHandler = new RobotHandler(Looper.getMainLooper());
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                mRobot.setDetectionModeOn(true);
+                if(RobotUtils.checkDetectionModeRequirements(mRobot)) {
+                    mRobot.setDetectionModeOn(true);
+                }
             }
         }, 15000);
     }
@@ -162,6 +187,9 @@ public class WelcomeFragment extends Fragment implements
         Robot.getInstance().addOnDetectionStateChangedListener(this);
         Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addAsrListener(this);
+
+        mHandler = new RobotHandler(Looper.getMainLooper());
+
     }
 
 
@@ -170,7 +198,18 @@ public class WelcomeFragment extends Fragment implements
         Robot.getInstance().removeOnDetectionStateChangedListener(this);
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeAsrListener(this);
+
+        mHandler.removeCallbacksAndMessages(null);
+        // Turn off Detection Mode if User taps robot on the Head or tries
+        // to go somewhere else besides the app.
+        mRobot.setDetectionModeOn(false);
     }
 
+
+    private static class RobotHandler extends Handler {
+        public RobotHandler(Looper looper) {
+            super(looper);
+        }
+    }
 
 }
