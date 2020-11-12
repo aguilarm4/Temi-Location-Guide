@@ -17,13 +17,27 @@ import com.robotemi.sdk.listeners.OnRobotReadyListener;
 import com.robotemi.sdk.permission.Permission;
 
 
+import java.util.concurrent.TimeUnit;
+
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.annotations.NonNull;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Observer;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import marco.a.aguilar.locationguide.utils.RobotUtils;
 
 /**
  * todo: Create functionality where application checks if Robot is in Home Base,
  * if not, then go to Home Base after waiting 1 minute or something.
+ *  This will be useful if the Robot is in the home screen but someone has made
+ *  the robot follow it somewhere else besides it's home base.
+ *      So far the only way of doing this is via AutoReturn but right now Temi
+ *      crashes whenever I try to set it up, it was working before but not anymore.
+ *      Hopefully it'll be fixed with the next software update.
  *
  * I'm only calling checkDetectionModeRequirements() inside onRobotReady()
  * and restartDetectionMode() because by the time the code executes any other code
@@ -36,9 +50,12 @@ public class WelcomeFragment extends Fragment implements
     private static final String TAG = "WelcomeFragment";
 
     Robot mRobot;
-    // Made subclass static to prevent memory leaks. Since creating
-    // a simple non-static handler here will hold an implicit reference to the Activity.
-    private RobotHandler mHandler;
+
+    // Used to turn on Detection Mode after a 14 second delay.
+    private Observable<Long> mTimeDelayObservable;
+    // Object used to remove Observers if the Android OS kills the Activity
+    CompositeDisposable mDisposables;
+
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -53,7 +70,12 @@ public class WelcomeFragment extends Fragment implements
 
         mRobot = Robot.getInstance();
 
-        mHandler = new RobotHandler(Looper.getMainLooper());
+        mDisposables = new CompositeDisposable();
+
+        mTimeDelayObservable = Observable
+                .timer(14, TimeUnit.SECONDS)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread());
 
         View exitView = view.findViewById(R.id.exit_view);
         exitView.setOnClickListener(new View.OnClickListener() {
@@ -77,6 +99,7 @@ public class WelcomeFragment extends Fragment implements
             mRobot.hideTopBar();
 
             if(RobotUtils.checkDetectionModeRequirements(mRobot)) {
+                // No delay the first time detection mode is turned on.
                 mRobot.setDetectionModeOn(true);
             } else {
                 /**
@@ -105,24 +128,20 @@ public class WelcomeFragment extends Fragment implements
             Log.d(TAG, "onDetectionStateChanged: User Detected ");
 
             /**
-             * Turn off detection mode right after it detected a user
-             * This will also keep the robot from following the User around (I hope)
-             *
-             * Attempting to turn on DetectionMode
+             * Turn off detection mode right after user detected.
+             * This will also keep the robot from following the User around.
              */
             mRobot.setDetectionModeOn(false);
 
             mRobot.askQuestion("Hello. May I help you find your location today?");
 
-            /**
-             * Going to wait 30 seconds before going back to
-             * detecting again. Just in case user doens't respond or exists out
-             * of question dialog
-             */
             restartDetectionMode();
-
         }
 
+    }
+
+    private void removeObservers() {
+        mDisposables.clear();
     }
 
     /**
@@ -131,15 +150,28 @@ public class WelcomeFragment extends Fragment implements
      * if so, then just setDetectionMode on.
      */
     private void restartDetectionMode() {
-        mHandler = new RobotHandler(Looper.getMainLooper());
-        mHandler.postDelayed(new Runnable() {
+
+        mTimeDelayObservable.subscribe(new Observer<Long>() {
             @Override
-            public void run() {
+            public void onSubscribe(@NonNull Disposable d) {
+                mDisposables.add(d);
+            }
+
+            @Override
+            public void onNext(@NonNull Long aLong) {
                 if(RobotUtils.checkDetectionModeRequirements(mRobot)) {
                     mRobot.setDetectionModeOn(true);
                 }
             }
-        }, 15000);
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                Log.d(TAG, "onError: " + e);
+            }
+
+            @Override
+            public void onComplete() {}
+        });
     }
 
     @Override
@@ -149,36 +181,29 @@ public class WelcomeFragment extends Fragment implements
 
         Log.d(TAG, "onAsrResult: asrResult " + asrResult);
 
+        removeObservers();
+
         if(asrResult.toLowerCase().contains("no")) {
 
-            // Cancel mHandler.postDelayed() and restartDetectionMode()
-            mHandler.removeCallbacksAndMessages(null);
             restartDetectionMode();
 
             TtsRequest request = TtsRequest.create("Have a nice day!", true);
             mRobot.speak(request);
 
         } else if (asrResult.toLowerCase().contains("yes")) {
-
-            // Turn Off detection mode just in case it was turned on again due to the
+            // Turn off detection mode just in case it was turned on again due to the
             // delay inside onDetectionStateChanged()
-            // Cancel handler postDelayed()
-            mHandler.removeCallbacksAndMessages(null);
             mRobot.setDetectionModeOn(false);
 
             Intent intent = new Intent(getActivity(), MainActivity.class);
             startActivity(intent);
-
         } else {
 
-            // Cancel mHandler.postDelayed() and restartDetectionMode()
-            mHandler.removeCallbacksAndMessages(null);
             restartDetectionMode();
 
             // Should create a loop
             mRobot.askQuestion("I'm sorry I couldn't understand. Please respond" +
                     " with a yes or no. Can I help you find your location?");
-
         }
     }
 
@@ -188,8 +213,7 @@ public class WelcomeFragment extends Fragment implements
         Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addAsrListener(this);
 
-        mHandler = new RobotHandler(Looper.getMainLooper());
-
+        restartDetectionMode();
     }
 
 
@@ -199,17 +223,11 @@ public class WelcomeFragment extends Fragment implements
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeAsrListener(this);
 
-        mHandler.removeCallbacksAndMessages(null);
+        removeObservers();
+
         // Turn off Detection Mode if User taps robot on the Head or tries
         // to go somewhere else besides the app.
         mRobot.setDetectionModeOn(false);
-    }
-
-
-    private static class RobotHandler extends Handler {
-        public RobotHandler(Looper looper) {
-            super(looper);
-        }
     }
 
 }

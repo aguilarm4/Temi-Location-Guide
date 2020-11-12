@@ -24,7 +24,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 
 /**
- * todo: Add "You can scroll to select your location" dialog
  *
  * IMPORTANT: SAVE THIS FEATURE FOR LATER AS A "NICE TO HAVE".
  * Right now focus on getting all the small details as perfect as possible.
@@ -32,8 +31,8 @@ import androidx.recyclerview.widget.RecyclerView;
  * or through Temi's SDK. (Or both). You can also add a button that will
  * ask the user to enter the person's name. ()
  *
- *
- *
+ * todo: Create a simple screen that says "Are you ready to go to [Location]"
+ * just in case the user accidentally clicks on a location while scrolling.
  */
 
 public class LocationsFragment extends Fragment
@@ -78,12 +77,6 @@ public class LocationsFragment extends Fragment
 
         // Should return 0 locations at first, until robot is ready.
         mLocations = new ArrayList<>(mRobot.getLocations());
-
-        /**
-         * We might have to create a method for the adapter that will hold
-         * a reference to the LocationsFragment view. This is so when we
-         * click one of the squares, we can make the overlay come up.
-         */
 
         // specify an adapter (see also next example)
         mAdapter = new LocationsAdapter(mLocations, mRobot);
