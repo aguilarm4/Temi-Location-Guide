@@ -51,10 +51,10 @@ public class WelcomeFragment extends Fragment implements
 
     Robot mRobot;
 
-    // Used to turn on Detection Mode after a 14 second delay.
+    // Used to turn on Detection Mode after a 15 second delay.
     private Observable<Long> mTimeDelayObservable;
     // Object used to remove Observers if the Android OS kills the Activity
-    CompositeDisposable mDisposables;
+    private CompositeDisposable mDisposables;
 
 
     @Override
@@ -73,7 +73,7 @@ public class WelcomeFragment extends Fragment implements
         mDisposables = new CompositeDisposable();
 
         mTimeDelayObservable = Observable
-                .timer(14, TimeUnit.SECONDS)
+                .timer(15, TimeUnit.SECONDS)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
 
@@ -190,7 +190,8 @@ public class WelcomeFragment extends Fragment implements
             TtsRequest request = TtsRequest.create("Have a nice day!", true);
             mRobot.speak(request);
 
-        } else if (asrResult.toLowerCase().contains("yes")) {
+        } else if (asrResult.toLowerCase().contains("yes") || asrResult.toLowerCase().contains("yeah") ||
+                asrResult.toLowerCase().contains("sure")) {
             // Turn off detection mode just in case it was turned on again due to the
             // delay inside onDetectionStateChanged()
             mRobot.setDetectionModeOn(false);

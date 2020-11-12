@@ -9,7 +9,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.Toast;
 
 import com.robotemi.sdk.Robot;
 import com.robotemi.sdk.TtsRequest;
@@ -20,10 +19,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.annotations.NonNull;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Observer;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Predicate;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 /**
  * Possible Bug:
@@ -44,7 +52,10 @@ public class NavigationCompleteFragment extends Fragment
 
     // Member variables
     Robot mRobot;
-    private RobotTimer mTimer;
+
+    // RxJava
+    private Observable<Long> mIntervalObservable;
+    private CompositeDisposable mDisposables;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -57,7 +68,14 @@ public class NavigationCompleteFragment extends Fragment
         View view = layoutInflater.inflate(R.layout.fragment_navigation_complete, container, false);
 
         mRobot = Robot.getInstance();
-        mTimer = new RobotTimer();
+
+        mDisposables = new CompositeDisposable();
+
+        mIntervalObservable = Observable
+                .interval(15, TimeUnit.SECONDS)
+                .subscribeOn(Schedulers.io())
+                .take(3)
+                .observeOn(AndroidSchedulers.mainThread());
 
         initButtons(view);
 
@@ -70,8 +88,6 @@ public class NavigationCompleteFragment extends Fragment
         Robot.getInstance().addAsrListener(this);
         Robot.getInstance().addOnGoToLocationStatusChangedListener(this);
 
-        // If the app goes through onStop() for some reason, the Timer will stop all tasks
-        // so we use onStart() to restart the process of asking the user if they're done.
         navigationCompletePrompt();
     }
 
@@ -81,7 +97,8 @@ public class NavigationCompleteFragment extends Fragment
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeAsrListener(this);
         Robot.getInstance().removeOnGoToLocationStatusChangedListener(this);
-        mTimer.cancel();
+
+        removeObservers();
     }
 
     /**
@@ -104,7 +121,6 @@ public class NavigationCompleteFragment extends Fragment
     public void onGoToLocationStatusChanged(String location, String status, int descriptionId, String description) {
         Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
                 " descriptionId: " + descriptionId + " description: " + description);
-
 
         /**
          * Only go to LocationFragment when the user is completing a trip to HOME_BASE
@@ -162,18 +178,39 @@ public class NavigationCompleteFragment extends Fragment
 
     }
 
+
     /**
-     * Waits 0 seconds before asking User if they need more help and repeats every 15 seconds.
+     * Uses RxJava to ask user if they need anymore help (onSubscribe). Then
+     * waits 15 seconds before asking again (onNext). After Temi has asked a third
+     * time, it will call goToHomeBase() (onComplete).
      */
     private void navigationCompletePrompt() {
 
-        TimerTask askUserIfFinished = startNavigationCompleteQuestion();
-        /**
-         * Making this 15 seconds because the prompt stays on the screen for about 10
-         * seconds. This will give the User 5 seconds to click the buttons instead before
-         * asking again.
-         */
-        mTimer.schedule(askUserIfFinished, 0, 15000);
+        mIntervalObservable.subscribe(new Observer<Long>() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+                mDisposables.add(d);
+                // Asks the question the moment we subscribe.
+                mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
+            }
+
+            @Override
+            public void onNext(@NonNull Long aLong) {
+                Log.d(TAG, "onNext: aLong" + aLong);
+                mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                Log.d(TAG, "onError: " + e);
+            }
+
+            @Override
+            public void onComplete() {
+                goToHomeBase();
+            }
+        });
+
     }
 
     private void goToHomeBase() {
@@ -181,33 +218,15 @@ public class NavigationCompleteFragment extends Fragment
         TtsRequest request = TtsRequest.create("Goodbye, have a nice day.", false);
         mRobot.speak(request);
 
-        mTimer.cancel();
+        removeObservers();
 
         // For now HOME_BASE is urbes.
         mRobot.goTo(HOME_BASE);
-
-        /**
-         * todo: Go to HOME_BASE and only on arrival go back to Locations Fragment.
-         * I'm not 100% sure if I need to do this though, maybe when the Robot goes
-         * to Home Base it'll do it automatically, so save this for later.
-         *
-         * Might have to implement OnGoToLocationStatusChangedListener
-         * to in order to go back to LocationsFragment (AKA HomeScreen in the future).
-         *
-         * You're going to have to check for "location" and only go back to LocationsFragment
-         * if status is COMPLETE and location is HOME_BASE
-         */
     }
 
 
-    /**
-     * You should only put go to LocationsFragment here.
-     * Leave the "Please select a location" speech for when the
-     * user enters to LocationsFragment.
-     */
     private void goToLocationsFragment() {
-
-        mTimer.cancel();
+        removeObservers();
 
         final FragmentTransaction transaction = getFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, new LocationsFragment());
@@ -215,8 +234,6 @@ public class NavigationCompleteFragment extends Fragment
     }
 
     private void goToHomeScreenActivity() {
-        mTimer.cancel();
-
         Intent intent = new Intent(getActivity(), HomeScreenActivity.class);
         startActivity(intent);
     }
@@ -241,37 +258,8 @@ public class NavigationCompleteFragment extends Fragment
         });
     }
 
-
-    private TimerTask startNavigationCompleteQuestion() {
-        final Handler handler = new Handler(Looper.getMainLooper());
-
-        final int[] counter = {0};
-
-        return new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(new Runnable() {
-                    public void run() {
-
-                        if(counter[0] < 3) {
-                            // Ask question again
-                            mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
-                        } else {
-                            goToHomeBase();
-                        }
-
-                        counter[0]++;
-
-                    }
-                });
-            }
-        };
+    private void removeObservers() {
+        mDisposables.clear();
     }
 
-    private static class RobotTimer extends Timer {
-
-        public RobotTimer() {
-        }
-
-    }
 }
