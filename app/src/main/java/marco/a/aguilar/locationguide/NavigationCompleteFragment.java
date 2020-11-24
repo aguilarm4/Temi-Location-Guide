@@ -33,17 +33,6 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Predicate;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
-/**
- * Possible Bug:
- *      Shahin told the Robot to go to "maco" and I believe the robot only
- *      asked ONCE if the user needed more help and then went back to HOME_BASE.
- */
-
-/**
- * So defintely need to figure out how to handle the repeated function calls
- * better so there aren't any memory leaks.
- */
-
 public class NavigationCompleteFragment extends Fragment
         implements OnRobotReadyListener, Robot.AsrListener, OnGoToLocationStatusChangedListener {
 
@@ -111,6 +100,7 @@ public class NavigationCompleteFragment extends Fragment
         if(isReady) {
             // Tilt Robot head so the user doesn't have a hard time pressing buttons.
             mRobot.tiltAngle(55);
+            mRobot.hideTopBar();
 
             navigationCompletePrompt();
         }
@@ -123,14 +113,10 @@ public class NavigationCompleteFragment extends Fragment
                 " descriptionId: " + descriptionId + " description: " + description);
 
         /**
-         * Only go to LocationFragment when the user is completing a trip to HOME_BASE
+         * Go back to WelcomeFragment when Temi completes its trip to HOME_BASE
          */
         if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && location.equals(HOME_BASE)) {
-            // Timer.cancel() called twice but after arriving to HOME_BASE but this is okay, documentation
-            // says it will have no effect.
-
             goToHomeScreenActivity();
-
         }
 
     }
@@ -155,7 +141,8 @@ public class NavigationCompleteFragment extends Fragment
 
             goToHomeBase();
 
-        } else if (asrResult.toLowerCase().contains("yes")) {
+        } else if (asrResult.toLowerCase().contains("yes") || asrResult.toLowerCase().contains("yeah") ||
+                asrResult.toLowerCase().contains("sure")) {
 
             goToLocationsFragment();
 
