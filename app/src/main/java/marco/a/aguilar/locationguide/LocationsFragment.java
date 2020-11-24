@@ -90,12 +90,12 @@ public class LocationsFragment extends Fragment
          * Needs to be called AFTER initializing mAdapter
          */
         Intent intent = getActivity().getIntent();
-        String searchViewVoiceQuery = "";
+        searchViewVoiceQuery = "";
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             searchViewVoiceQuery = intent.getStringExtra(SearchManager.QUERY);
 
         }
-        initSearchView(view, searchViewVoiceQuery);
+        initSearchView(view);
 
 
         // Inflate the layout for this fragment
@@ -128,7 +128,7 @@ public class LocationsFragment extends Fragment
 
                 // Temi will say this every time the user goes to LocationsFragment
                 // Don't speak if user is entering LocationsFragment after using Voice search
-                if(searchViewVoiceQuery.length() > 0) {
+                if(searchViewVoiceQuery.length() <= 0) {
                     TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
                             " enter a search if you'd like.", true);
                     mRobot.speak(request);
@@ -192,11 +192,13 @@ public class LocationsFragment extends Fragment
     }
 
 
-    private void initSearchView(View view, String searchViewVoiceQuery) {
+    private void initSearchView(View view) {
         // This will stop working if user rotates the device...need to do more research on this.
         // This is used to make the whole search bar clickable.
         SearchView searchView = (SearchView) view.findViewById(R.id.search_view);
 
+
+        Log.d(TAG, "initSearchView: searchViewVoiceQuery.length: " + searchViewVoiceQuery.length());
 
         if(searchViewVoiceQuery.length() > 0) {
             searchView.setQuery(searchViewVoiceQuery, false);
@@ -207,7 +209,7 @@ public class LocationsFragment extends Fragment
 
         SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-        searchView.setIconifiedByDefault(false);
+        searchView.setIconifiedByDefault(true); // Should cause SearchView NOT to focus when entering Fragment
 
         searchView.setOnClickListener(new View.OnClickListener() {
             @Override
