@@ -1,5 +1,8 @@
 package marco.a.aguilar.locationguide;
 
+import android.app.SearchManager;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -47,6 +50,7 @@ public class LocationsFragment extends Fragment
     private RecyclerView.LayoutManager mLayoutManager;
 
     private ArrayList<String> mLocations;
+    private String searchViewVoiceQuery;
 
     // Temi
     private Robot mRobot;
@@ -85,7 +89,14 @@ public class LocationsFragment extends Fragment
         /**
          * Needs to be called AFTER initializing mAdapter
          */
-        initSearchView(view);
+        Intent intent = getActivity().getIntent();
+        String searchViewVoiceQuery = "";
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            searchViewVoiceQuery = intent.getStringExtra(SearchManager.QUERY);
+
+        }
+        initSearchView(view, searchViewVoiceQuery);
+
 
         // Inflate the layout for this fragment
         return view;
@@ -116,9 +127,12 @@ public class LocationsFragment extends Fragment
                 mRobot.tiltAngle(55);
 
                 // Temi will say this every time the user goes to LocationsFragment
-                TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
-                        " enter a search if you'd like.", true);
-                mRobot.speak(request);
+                // Don't speak if user is entering LocationsFragment after using Voice search
+                if(searchViewVoiceQuery.length() > 0) {
+                    TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
+                            " enter a search if you'd like.", true);
+                    mRobot.speak(request);
+                }
 
                 /**
                  * Had to make mLocations an ArrayList or else clear() and
@@ -178,10 +192,23 @@ public class LocationsFragment extends Fragment
     }
 
 
-    private void initSearchView(View view) {
+    private void initSearchView(View view, String searchViewVoiceQuery) {
         // This will stop working if user rotates the device...need to do more research on this.
         // This is used to make the whole search bar clickable.
         SearchView searchView = (SearchView) view.findViewById(R.id.search_view);
+
+
+        if(searchViewVoiceQuery.length() > 0) {
+            searchView.setQuery(searchViewVoiceQuery, false);
+            // Need to add this or else the adapter won't cause the list to be updated.
+            ((LocationsAdapter) mAdapter).filter(searchViewVoiceQuery);
+        }
+
+
+        SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
+        searchView.setIconifiedByDefault(false);
+
         searchView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
