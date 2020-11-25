@@ -6,23 +6,57 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.appcompat.widget.SearchView
-        android:id="@+id/search_view"
-        android:layout_width="450dp"
-        android:layout_height="60dp"
-        android:inputType="textCapWords"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/search_view_container"
+        android:layout_width="460dp"
+        android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
-        android:queryBackground="@android:color/transparent"
-        app:queryBackground="@android:color/transparent"
-        android:layout_marginTop="10dp" />
+        android:orientation="horizontal">
 
-    <View
-        android:id="@+id/line"
-        android:background="#ebebeb"
-        android:layout_centerHorizontal="true"
-        android:layout_height="2dp"
-        android:layout_width="420dp"
-        android:layout_below="@+id/search_view"/>
+        <LinearLayout
+            android:id="@+id/linearLayout"
+            android:layout_width="400dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            app:layout_constraintEnd_toStartOf="@id/voice_input_button"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/search_view"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginTop="10dp"
+                android:inputType="textCapWords"
+                android:queryBackground="@android:color/transparent"
+                app:queryBackground="@android:color/transparent" />
+
+            <View
+                android:id="@+id/line"
+                android:layout_width="380dp"
+                android:layout_height="2dp"
+                android:background="@color/grey" />
+
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/voice_input_button"
+            android:layout_width="55dp"
+            android:layout_height="60dp"
+            android:backgroundTint="@color/lightBlack"
+            android:gravity="center_horizontal"
+            app:icon="@drawable/ic_mic_icon_dark"
+            app:iconTint="@color/grey"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/linearLayout" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/locations_recycler_view"
@@ -30,6 +64,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scrollbars="vertical"
-        android:layout_below="@+id/line"/>
+        android:layout_below="@+id/search_view_container"/>
 
 </RelativeLayout>

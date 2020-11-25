@@ -5,7 +5,9 @@
     <color name="colorAccent">#2EAFA0</color>
     <color name="black">#212121</color>
     <color name="white">#FFFFFF</color>
-    <color name="grey">#f2f2f2</color>
+    <color name="grey">#b0b0b0</color>
+    <color name="lightBlack">#2e2e2e</color>
+
     <color name="green">#2F9F44</color>
 
     <color name="overlay_color">#5C5C5C</color>

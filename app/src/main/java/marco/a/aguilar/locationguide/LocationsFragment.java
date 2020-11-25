@@ -52,6 +52,8 @@ public class LocationsFragment extends Fragment
     private ArrayList<String> mLocations;
     private String searchViewVoiceQuery;
 
+    SearchView searchView;
+
     // Temi
     private Robot mRobot;
 
@@ -195,11 +197,8 @@ public class LocationsFragment extends Fragment
     private void initSearchView(View view) {
         // This will stop working if user rotates the device...need to do more research on this.
         // This is used to make the whole search bar clickable.
-        SearchView searchView = (SearchView) view.findViewById(R.id.search_view);
-
-
-        Log.d(TAG, "initSearchView: searchViewVoiceQuery.length: " + searchViewVoiceQuery.length());
-
+        searchView = (SearchView) view.findViewById(R.id.search_view);
+        
         if(searchViewVoiceQuery.length() > 0) {
             searchView.setQuery(searchViewVoiceQuery, false);
             // Need to add this or else the adapter won't cause the list to be updated.
@@ -209,7 +208,8 @@ public class LocationsFragment extends Fragment
 
         SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-        searchView.setIconifiedByDefault(true); // Should cause SearchView NOT to focus when entering Fragment
+        // Should cause SearchView NOT to focus when entering Fragment (true is default)
+        searchView.setIconifiedByDefault(true);
 
         searchView.setOnClickListener(new View.OnClickListener() {
             @Override
