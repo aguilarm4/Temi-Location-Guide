@@ -1,7 +1,5 @@
 package marco.a.aguilar.locationguide;
 
-import android.app.SearchManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -10,6 +8,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import com.robotemi.sdk.Robot;
 import com.robotemi.sdk.TtsRequest;
@@ -39,7 +38,7 @@ import androidx.recyclerview.widget.RecyclerView;
  */
 
 public class LocationsFragment extends Fragment
-    implements OnRobotReadyListener, OnGoToLocationStatusChangedListener {
+    implements OnRobotReadyListener, OnGoToLocationStatusChangedListener, Robot.AsrListener {
 
     private static final String TAG = "LocationsFragment";
     private static final String HOME_BASE = "urbes";
@@ -52,7 +51,7 @@ public class LocationsFragment extends Fragment
     private ArrayList<String> mLocations;
     private String searchViewVoiceQuery;
 
-    SearchView searchView;
+    private SearchView searchView;
 
     // Temi
     private Robot mRobot;
@@ -91,12 +90,7 @@ public class LocationsFragment extends Fragment
         /**
          * Needs to be called AFTER initializing mAdapter
          */
-        Intent intent = getActivity().getIntent();
-        searchViewVoiceQuery = "";
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            searchViewVoiceQuery = intent.getStringExtra(SearchManager.QUERY);
-
-        }
+        initButtons(view);
         initSearchView(view);
 
 
@@ -109,6 +103,7 @@ public class LocationsFragment extends Fragment
         super.onStart();
         Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addOnGoToLocationStatusChangedListener(this);
+        Robot.getInstance().addAsrListener(this);
     }
 
 
@@ -116,6 +111,20 @@ public class LocationsFragment extends Fragment
         super.onStop();
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeOnGoToLocationStatusChangedListener(this);
+        Robot.getInstance().removeAsrListener(this);
+    }
+
+
+    private void initButtons(View view) {
+        Button voiceSearchButton = view.findViewById(R.id.voice_search_button);
+
+        voiceSearchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mRobot.askQuestion("What is your location?");
+            }
+        });
+
     }
 
     /**
@@ -129,12 +138,9 @@ public class LocationsFragment extends Fragment
                 mRobot.tiltAngle(55);
 
                 // Temi will say this every time the user goes to LocationsFragment
-                // Don't speak if user is entering LocationsFragment after using Voice search
-                if(searchViewVoiceQuery.length() <= 0) {
-                    TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
-                            " enter a search if you'd like.", true);
-                    mRobot.speak(request);
-                }
+                TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
+                        " enter a search if you'd like.", true);
+                mRobot.speak(request);
 
                 /**
                  * Had to make mLocations an ArrayList or else clear() and
@@ -157,6 +163,30 @@ public class LocationsFragment extends Fragment
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    @Override
+    public void onAsrResult(String asrResult) {
+
+        mRobot.finishConversation();
+
+        /**
+         * We're assuming that the only time we are receiving an ASR result is
+         * because the user clicked the voice search button, that's why we're doing
+         * the filter operation here.
+         */
+        if(asrResult.length() > 0) {
+
+            if(asrResult.toLowerCase().contains("shaheen")) {
+                asrResult = "Shahin";
+            }
+
+            searchView.setIconified(false);
+            searchView.setQuery(asrResult,true);
+            ((LocationsAdapter) mAdapter).filter(asrResult);
+        }
+
+
     }
 
 
@@ -198,18 +228,6 @@ public class LocationsFragment extends Fragment
         // This will stop working if user rotates the device...need to do more research on this.
         // This is used to make the whole search bar clickable.
         searchView = (SearchView) view.findViewById(R.id.search_view);
-        
-        if(searchViewVoiceQuery.length() > 0) {
-            searchView.setQuery(searchViewVoiceQuery, false);
-            // Need to add this or else the adapter won't cause the list to be updated.
-            ((LocationsAdapter) mAdapter).filter(searchViewVoiceQuery);
-        }
-
-
-        SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-        // Should cause SearchView NOT to focus when entering Fragment (true is default)
-        searchView.setIconifiedByDefault(true);
 
         searchView.setOnClickListener(new View.OnClickListener() {
             @Override
