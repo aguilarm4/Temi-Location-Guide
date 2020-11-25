@@ -1,6 +1,5 @@
 package marco.a.aguilar.locationguide;
 
-import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -26,15 +25,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 
 /**
- *
- * IMPORTANT: SAVE THIS FEATURE FOR LATER AS A "NICE TO HAVE".
- * Right now focus on getting all the small details as perfect as possible.
- * todo: Add "search by voice" feature. Either do this in the searchView
- * or through Temi's SDK. (Or both). You can also add a button that will
- * ask the user to enter the person's name. ()
+ * todo: Create a timer that makes application go back to WelcomeFragment
+ * after a minute or two, if the user hasn't done anything yet.
  *
  * todo: Create a simple screen that says "Are you ready to go to [Location]"
  * just in case the user accidentally clicks on a location while scrolling.
+ *
  */
 
 public class LocationsFragment extends Fragment
@@ -174,6 +170,10 @@ public class LocationsFragment extends Fragment
          * We're assuming that the only time we are receiving an ASR result is
          * because the user clicked the voice search button, that's why we're doing
          * the filter operation here.
+         *
+         * I also noticed that the Robot has trouble writing in the voice search. Might
+         * need to find a better way to get around this issue instead of hard coding the
+         * names.
          */
         if(asrResult.length() > 0) {
 
@@ -181,6 +181,8 @@ public class LocationsFragment extends Fragment
                 asrResult = "Shahin";
             }
 
+            // Set the text for searchview. setIconified() is set to false so that
+            // asrResult text shows up on the searchView
             searchView.setIconified(false);
             searchView.setQuery(asrResult,true);
             ((LocationsAdapter) mAdapter).filter(asrResult);
