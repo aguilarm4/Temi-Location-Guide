@@ -36,11 +36,12 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
     // Used for filter()
     private ArrayList<String> mLocationsCopy;
 
-    public static Robot mRobot;
+    private static OnLocationItemClickedListener mOnLocationItemClickedListener;
 
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public LocationsAdapter(ArrayList<String> locations, Robot robot) {
+    public LocationsAdapter(ArrayList<String> locations,
+                            OnLocationItemClickedListener onLocationItemClickedListener) {
 
         mLocations = locations;
 
@@ -48,7 +49,7 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
         mLocationsCopy = new ArrayList<>();
         mLocationsCopy.addAll(mLocations);
 
-        mRobot = robot;
+        mOnLocationItemClickedListener = onLocationItemClickedListener;
     }
 
     public void setLocationsCopy(ArrayList<String> locations) {
@@ -109,18 +110,15 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
 
             textView = itemView.findViewById(R.id.location_text);
 
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    String location = textView.getText().toString();
-
-                    // Robot asks users to follow
-                    TtsRequest request = TtsRequest.create("Please follow me. I am going to " + location, true);
-                    mRobot.speak(request);
-
-                    mRobot.goTo(location);
-                }
+            itemView.setOnClickListener(view -> {
+                String location = textView.getText().toString();
+                mOnLocationItemClickedListener.onLocationClicked(location);
             });
         }
+    }
+
+    public interface OnLocationItemClickedListener {
+
+        void onLocationClicked(String location);
     }
 }

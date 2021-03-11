@@ -1,5 +1,6 @@
 package marco.a.aguilar.locationguide;
 
+import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -8,6 +9,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.robotemi.sdk.Robot;
@@ -16,8 +19,10 @@ import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener;
 import com.robotemi.sdk.listeners.OnRobotReadyListener;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -35,7 +40,8 @@ import androidx.recyclerview.widget.RecyclerView;
  */
 
 public class LocationsFragment extends Fragment
-    implements OnRobotReadyListener, OnGoToLocationStatusChangedListener, Robot.AsrListener {
+    implements OnRobotReadyListener, OnGoToLocationStatusChangedListener, Robot.AsrListener,
+        LocationsAdapter.OnLocationItemClickedListener {
 
     private static final String TAG = "LocationsFragment";
     private static final String HOME_BASE = "home base";
@@ -81,7 +87,7 @@ public class LocationsFragment extends Fragment
         mLocations = new ArrayList<>(mRobot.getLocations());
 
         // specify an adapter (see also next example)
-        mAdapter = new LocationsAdapter(mLocations, mRobot);
+        mAdapter = new LocationsAdapter(mLocations, this);
         mRecyclerView.setAdapter(mAdapter);
 
         /**
@@ -251,5 +257,32 @@ public class LocationsFragment extends Fragment
                 return true;
             }
         });
+    }
+
+    @Override
+    public void onLocationClicked(String location) {
+        AlertDialog alertDialog = new AlertDialog.Builder(Objects.requireNonNull(getActivity())).create();
+        alertDialog.setTitle("Are you ready?");
+
+        alertDialog.setMessage("Click \"Start\" to begin trip to " + location);
+
+
+        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Start",
+                (dialogInterface, i) -> {
+                    // Robot asks users to follow
+                    TtsRequest request = TtsRequest.create("Please follow me. I am going to " + location, true);
+                    mRobot.speak(request);
+                    mRobot.goTo(location);
+                });
+
+        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel",
+                (dialogInterface, i) -> dialogInterface.dismiss());
+
+        alertDialog.show();
+
+        // Need to place this after show()
+        TextView textView = (TextView) alertDialog.findViewById(android.R.id.message);
+        textView.setTextSize(30);
+
     }
 }
