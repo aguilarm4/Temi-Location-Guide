@@ -119,7 +119,6 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
                     mRobot.speak(request);
 
                     mRobot.goTo(location);
-
                 }
             });
         }

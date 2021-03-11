@@ -37,7 +37,7 @@ public class NavigationCompleteFragment extends Fragment
         implements OnRobotReadyListener, Robot.AsrListener, OnGoToLocationStatusChangedListener {
 
     private static final String TAG = "NavCompleteFragment";
-    private static final String HOME_BASE = "urbes";
+    private static final String HOME_BASE = "home base";
 
     // Member variables
     Robot mRobot;

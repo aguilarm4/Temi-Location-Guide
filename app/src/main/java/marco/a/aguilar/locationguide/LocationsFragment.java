@@ -38,7 +38,7 @@ public class LocationsFragment extends Fragment
     implements OnRobotReadyListener, OnGoToLocationStatusChangedListener, Robot.AsrListener {
 
     private static final String TAG = "LocationsFragment";
-    private static final String HOME_BASE = "urbes";
+    private static final String HOME_BASE = "home base";
 
     // RecyclerView
     private RecyclerView mRecyclerView;
@@ -139,12 +139,9 @@ public class LocationsFragment extends Fragment
                         " enter a search if you'd like.", true);
                 mRobot.speak(request);
 
-                /**
-                 * Had to make mLocations an ArrayList or else clear() and
-                 * addAll() didn't work properly and the app would crash.
-                 */
                 mLocations.clear();
                 mLocations.addAll(mRobot.getLocations());
+                mLocations.remove(HOME_BASE);
 
                 /**
                  * Update mLocationsCopy for RecyclerView adapter. When adapter
