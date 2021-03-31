@@ -25,6 +25,8 @@ import com.robotemi.sdk.listeners.OnRobotReadyListener;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -91,12 +93,12 @@ public class LocationsFragment extends Fragment
 
         mLocationFragmentDisposables = new CompositeDisposable();
         /**
-         * Executes once after 2 minutes, if Temi is not currently
+         * Executes once after 3 minutes, if Temi is not currently
          * completing a trip, then it will execute the code inside
-         * onNext().
+         * onNext()
          */
         mLocationFragmentIntervalObservable = Observable
-                .interval(2, TimeUnit.MINUTES)
+                .interval(3, TimeUnit.MINUTES)
                 .subscribeOn(Schedulers.io())
                 .take(1)
                 .takeWhile((t) -> !mIsCompletingTrip)
@@ -233,6 +235,16 @@ public class LocationsFragment extends Fragment
                 mLocations.addAll(mRobot.getLocations());
 
                 /**
+                 * Sort locations before adding them to the adapter.
+                 */
+                Collections.sort(mLocations, new Comparator<String>() {
+                    @Override
+                    public int compare(String location1, String location2) {
+                        return location1.compareTo(location2);
+                    }
+                });
+
+                /**
                  * Update mLocationsCopy for RecyclerView adapter. When adapter
                  * is initialized, mLocations and the copy won't have any items
                  * until the onRobotReady is called.
@@ -280,29 +292,9 @@ public class LocationsFragment extends Fragment
 
 
     /**
-     * We're going to try this approach with our RxJava Observable.
-     * Using takeWhile() with a Boolean value.
+     * Using takeWhile() with a mIsCompletingTrip.
      * https://stackoverflow.com/questions/39323167/how-to-stop-interval-from-observable
      * https://stackoverflow.com/questions/41070443/rxjava-how-to-stop-and-resume-a-hot-observable-interval
-     *
-     * Todo: Figure out if you can use this method to toggle mIsCompletingTrip.
-     *   Check if OnGoToLocationStatusChangedListener.START is being printed
-     *   if Temi is blocked, and the user selects "YES" when prompted to retry.
-     *   In this situation, setting mIsCompletingTrip to "true" would work in our favor.
-     *
-     * Todo: Next figure out what to do if the user selects "NO". If the user selects "NO",
-     *   then we know our Fragment's onStart() method will be called and thus the onRobotReady()
-     *   So, if OnGoToLocationStatusChangedListener.ABORT, then we toggle mIsCompletingTrip to "false".
-     *
-     * Todo: Now, we don't want the Robot to speak if mIsCompletingTrip is "true", due to the user
-     *  selecting the retry option. So we'll wrap the speak() method around an if-statement
-     *  (if !mIsCompletingTrip, then we speak)
-     *
-     * Todo: Test out your hypothesis by writing the appropriate logs, once you see that your app
-     *  working the way you envisioned, then add the RxJava stuff.
-     *
-     *  If mWasInturrputed, then we don't speak
-     *
      */
     @Override
     public void onGoToLocationStatusChanged(String location, String status, int descriptionId, String description) {

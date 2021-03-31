@@ -64,6 +64,9 @@ public class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.Loca
     public void filter(String text) {
         mLocations.clear();
         if(text.isEmpty()){
+            /**
+             * Might have to sort here too.
+             */
             mLocations.addAll(mLocationsCopy);
         } else{
             text = text.toLowerCase();
