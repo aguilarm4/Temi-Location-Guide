@@ -73,7 +73,11 @@ public class LocationsFragment extends Fragment
     private Boolean mIsCompletingTrip = false;
     private boolean mWasInterrupted = false;
 
-    SharedPreferences mSharedPreferences;
+    private SharedPreferences mSharedPreferences;
+
+    // RxJava
+    private Observable<Long> mLocationFragmentIntervalObservable;
+    private CompositeDisposable mLocationFragmentDisposables;
 
 
     @Override
@@ -84,7 +88,46 @@ public class LocationsFragment extends Fragment
         mSharedPreferences = context.getSharedPreferences(
                 getString(R.string.shared_preferences_file_key), Context.MODE_PRIVATE
         );
-        
+
+        mLocationFragmentDisposables = new CompositeDisposable();
+        /**
+         * Executes once after 2 minutes, if Temi is not currently
+         * completing a trip, then it will execute the code inside
+         * onNext().
+         */
+        mLocationFragmentIntervalObservable = Observable
+                .interval(2, TimeUnit.MINUTES)
+                .subscribeOn(Schedulers.io())
+                .take(1)
+                .takeWhile((t) -> !mIsCompletingTrip)
+                .observeOn(AndroidSchedulers.mainThread());
+
+
+        mLocationFragmentIntervalObservable.subscribe(new Observer<Long>() {
+            @Override
+            public void onSubscribe(@NonNull Disposable d) {
+                mLocationFragmentDisposables.add(d);
+            }
+
+            @Override
+            public void onNext(@NonNull Long aLong) {
+                Log.d(TAG, "onNext: RxJava onNext() called...");
+            }
+
+            @Override
+            public void onError(@NonNull Throwable e) {
+                Log.d(TAG, "onError: " + e);
+            }
+
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "onComplete: RxJava onComplete() called...");
+                // Return Temi Home.
+                Intent intent = new Intent(getActivity(), ReturnHomeActivity.class);
+                startActivity(intent);
+            }
+
+        });
     }
 
 
@@ -142,6 +185,12 @@ public class LocationsFragment extends Fragment
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeOnGoToLocationStatusChangedListener(this);
         Robot.getInstance().removeAsrListener(this);
+
+        removeObservers();
+    }
+
+    private void removeObservers() {
+        mLocationFragmentDisposables.clear();
     }
 
 
@@ -227,7 +276,6 @@ public class LocationsFragment extends Fragment
             ((LocationsAdapter) mAdapter).filter(asrResult);
         }
 
-
     }
 
 
@@ -271,11 +319,11 @@ public class LocationsFragment extends Fragment
          * We want to use this so that our Observable can determine whether to go
          * to Home Base or not, we don't need to toggle this value to "false" anywhere
          * because there are only 2 cases when it's false:
-         *      1) The user comes to this view for the first time, thus mIsCompletingTrip
+         *      1) The user comes to this view for the first time, in which case mIsCompletingTrip
          *      is already initialized as "false"
          *
          *      2) The user selects "Yes" or "No" when Temi is blocked, and the activity will
-         *      start up again, which means mIsCompletingTrip will be initialized again, as "false"
+         *      start up again, which means mIsCompletingTrip will be initialized again as "false"
          */
         if(status.equals(OnGoToLocationStatusChangedListener.CALCULATING) || status.equals(OnGoToLocationStatusChangedListener.START))
             Log.d(TAG, "onGoToLocationStatusChanged: Switching mIsCompletingTrip to true...");
