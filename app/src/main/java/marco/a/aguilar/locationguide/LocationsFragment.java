@@ -1,6 +1,9 @@
 package marco.a.aguilar.locationguide;
 
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -9,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,8 +22,11 @@ import com.robotemi.sdk.TtsRequest;
 import com.robotemi.sdk.listeners.OnGoToLocationStatusChangedListener;
 import com.robotemi.sdk.listeners.OnRobotReadyListener;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -28,14 +35,18 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.annotations.NonNull;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Observer;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 
 /**
  * todo: Create a timer that makes application go back to WelcomeFragment
  * after a minute or two, if the user hasn't done anything yet.
- *
- * todo: Create a simple screen that says "Are you ready to go to [Location]"
- * just in case the user accidentally clicks on a location while scrolling.
  *
  */
 
@@ -59,10 +70,21 @@ public class LocationsFragment extends Fragment
     // Temi
     private Robot mRobot;
 
+    private Boolean mIsCompletingTrip = false;
+    private boolean mWasInterrupted = false;
+
+    SharedPreferences mSharedPreferences;
+
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Context context = getActivity();
+        mSharedPreferences = context.getSharedPreferences(
+                getString(R.string.shared_preferences_file_key), Context.MODE_PRIVATE
+        );
+        
     }
 
 
@@ -72,7 +94,6 @@ public class LocationsFragment extends Fragment
         View view = layoutInflater.inflate(R.layout.fragment_locations, container, false);
 
         mRobot = Robot.getInstance();
-
 
         mRecyclerView = view.findViewById(R.id.locations_recycler_view);
 
@@ -104,8 +125,14 @@ public class LocationsFragment extends Fragment
 
     public void onStart() {
         super.onStart();
-        Robot.getInstance().addOnRobotReadyListener(this);
+        /**
+         * Calls onRobotReady(), even after the Temi robot is disturbed.
+         *
+         * When blocked, it will give the user 2 options
+         *  1)
+         */
         Robot.getInstance().addOnGoToLocationStatusChangedListener(this);
+        Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addAsrListener(this);
     }
 
@@ -143,11 +170,18 @@ public class LocationsFragment extends Fragment
                 // Temi will say this every time the user goes to LocationsFragment
                 TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
                         " enter a search if you'd like.", true);
-                mRobot.speak(request);
+
+                mWasInterrupted = mSharedPreferences.getBoolean(
+                        getString(R.string.locations_fragment_was_interrupted),
+                        false);
+
+                Log.d(TAG, "onRobotReady: mWasInterrupted: " + mWasInterrupted);
+
+                if(!mWasInterrupted)
+                    mRobot.speak(request);
 
                 mLocations.clear();
                 mLocations.addAll(mRobot.getLocations());
-                mLocations.remove(HOME_BASE);
 
                 /**
                  * Update mLocationsCopy for RecyclerView adapter. When adapter
@@ -159,6 +193,7 @@ public class LocationsFragment extends Fragment
 
                 final ActivityInfo activityInfo = getActivity().getPackageManager().getActivityInfo(getActivity().getComponentName(), PackageManager.GET_META_DATA);
                 mRobot.onStart(activityInfo);
+
             } catch (PackageManager.NameNotFoundException e) {
                 throw new RuntimeException(e);
             }
@@ -196,23 +231,84 @@ public class LocationsFragment extends Fragment
     }
 
 
+    /**
+     * We're going to try this approach with our RxJava Observable.
+     * Using takeWhile() with a Boolean value.
+     * https://stackoverflow.com/questions/39323167/how-to-stop-interval-from-observable
+     * https://stackoverflow.com/questions/41070443/rxjava-how-to-stop-and-resume-a-hot-observable-interval
+     *
+     * Todo: Figure out if you can use this method to toggle mIsCompletingTrip.
+     *   Check if OnGoToLocationStatusChangedListener.START is being printed
+     *   if Temi is blocked, and the user selects "YES" when prompted to retry.
+     *   In this situation, setting mIsCompletingTrip to "true" would work in our favor.
+     *
+     * Todo: Next figure out what to do if the user selects "NO". If the user selects "NO",
+     *   then we know our Fragment's onStart() method will be called and thus the onRobotReady()
+     *   So, if OnGoToLocationStatusChangedListener.ABORT, then we toggle mIsCompletingTrip to "false".
+     *
+     * Todo: Now, we don't want the Robot to speak if mIsCompletingTrip is "true", due to the user
+     *  selecting the retry option. So we'll wrap the speak() method around an if-statement
+     *  (if !mIsCompletingTrip, then we speak)
+     *
+     * Todo: Test out your hypothesis by writing the appropriate logs, once you see that your app
+     *  working the way you envisioned, then add the RxJava stuff.
+     *
+     *  If mWasInturrputed, then we don't speak
+     *
+     */
     @Override
     public void onGoToLocationStatusChanged(String location, String status, int descriptionId, String description) {
-        // todo: Check what other "description" values there are. Shahin wants to know if
-        // Temi can detect moving obstacles.
         Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
                 " descriptionId: " + descriptionId + " description: " + description);
 
+        Log.d(TAG, "onGoToLocationStatusChanged: mIsCompletingTrip: " + mIsCompletingTrip);
+
         /**
-         * Todo: *** Remove home base as an option on the application. ****
-         * Because this if statement will be entered if we are somewhere else, and
-         * someone decides to select "home base" as the destination.
+         * Calculating/START are always the first statuses printed when the user selects
+         * a location to go to or when it starts up again (When user selects retry)
+         * so, this is where we should add the mIsCompletingTrip change
          *
-         * This will all occur after we change HOME_BASE to "home base" instead of "urbes"
+         * We want to use this so that our Observable can determine whether to go
+         * to Home Base or not, we don't need to toggle this value to "false" anywhere
+         * because there are only 2 cases when it's false:
+         *      1) The user comes to this view for the first time, thus mIsCompletingTrip
+         *      is already initialized as "false"
+         *
+         *      2) The user selects "Yes" or "No" when Temi is blocked, and the activity will
+         *      start up again, which means mIsCompletingTrip will be initialized again, as "false"
          */
+        if(status.equals(OnGoToLocationStatusChangedListener.CALCULATING) || status.equals(OnGoToLocationStatusChangedListener.START))
+            Log.d(TAG, "onGoToLocationStatusChanged: Switching mIsCompletingTrip to true...");
+            mIsCompletingTrip = true;
+
+        /**
+         * In both situation of completing a trip, Home Base or not, we want to reset
+         * the value for mWasInterrupted.
+         */
+        if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE)) {
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            editor.putBoolean(getString(R.string.locations_fragment_was_interrupted), false);
+            editor.apply();
+        }
+
         if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && !location.equals(HOME_BASE)) {
             // Only go to NavigationCompleteFragment if we are not arriving at HOME_BASE
             goToNavigationCompleteFragment();
+        }
+
+        if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && location.equals(HOME_BASE)) {
+            goToWelcomeScreen();
+        }
+
+        /**
+         * Save mWasInterrupted value to true
+         */
+        if(status.equals(OnGoToLocationStatusChangedListener.ABORT)) {
+            Log.d(TAG, "onGoToLocationStatusChanged: Temi was interrupted");
+
+            SharedPreferences.Editor editor = mSharedPreferences.edit();
+            editor.putBoolean(getString(R.string.locations_fragment_was_interrupted), true);
+            editor.apply();
         }
 
         // In case a human is in the way.
@@ -227,6 +323,11 @@ public class LocationsFragment extends Fragment
         final FragmentTransaction transaction = getFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, new NavigationCompleteFragment());
         transaction.commit();
+    }
+
+    private void goToWelcomeScreen() {
+        Intent intent = new Intent(getActivity(), HomeScreenActivity.class);
+        startActivity(intent);
     }
 
 
@@ -262,10 +363,8 @@ public class LocationsFragment extends Fragment
     @Override
     public void onLocationClicked(String location) {
         AlertDialog alertDialog = new AlertDialog.Builder(Objects.requireNonNull(getActivity())).create();
-        alertDialog.setTitle("Are you ready?");
 
-        alertDialog.setMessage("Click \"Start\" to begin trip to " + location);
-
+        alertDialog.setMessage("Ready to go to " + location + "?");
 
         alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Start",
                 (dialogInterface, i) -> {
@@ -282,7 +381,17 @@ public class LocationsFragment extends Fragment
 
         // Need to place this after show()
         TextView textView = (TextView) alertDialog.findViewById(android.R.id.message);
-        textView.setTextSize(30);
+        textView.setTextSize(40);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(10,10,10,10);
+        textView.setLayoutParams(params);
+
+        Button positiveButton = alertDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+        positiveButton.setTextSize(28);
+
+        Button negativeButton = alertDialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+        negativeButton.setTextSize(28);
 
     }
 }

@@ -34,7 +34,7 @@ import io.reactivex.rxjava3.functions.Predicate;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class NavigationCompleteFragment extends Fragment
-        implements OnRobotReadyListener, Robot.AsrListener, OnGoToLocationStatusChangedListener {
+        implements OnRobotReadyListener, Robot.AsrListener {
 
     private static final String TAG = "NavCompleteFragment";
     private static final String HOME_BASE = "home base";
@@ -75,7 +75,6 @@ public class NavigationCompleteFragment extends Fragment
         super.onStart();
         Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addAsrListener(this);
-        Robot.getInstance().addOnGoToLocationStatusChangedListener(this);
 
         navigationCompletePrompt();
     }
@@ -85,7 +84,6 @@ public class NavigationCompleteFragment extends Fragment
         super.onStop();
         Robot.getInstance().removeOnRobotReadyListener(this);
         Robot.getInstance().removeAsrListener(this);
-        Robot.getInstance().removeOnGoToLocationStatusChangedListener(this);
 
         removeObservers();
     }
@@ -108,38 +106,22 @@ public class NavigationCompleteFragment extends Fragment
     }
 
     @Override
-    public void onGoToLocationStatusChanged(String location, String status, int descriptionId, String description) {
-        Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
-                " descriptionId: " + descriptionId + " description: " + description);
-
-        /**
-         * Go back to WelcomeFragment when Temi completes its trip to HOME_BASE
-         */
-        if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && location.equals(HOME_BASE)) {
-            goToHomeScreenActivity();
-        }
-
-    }
-
-
-    @Override
     public void onAsrResult(@NotNull String asrResult) {
         Log.d(TAG, "onAsrResult: " + asrResult);
 
         /**
-         * IMPORTANT!!! We need to call finishConversation() or else
+         * IMPORTANT!!! Need to call finishConversation() or else
          * Temi will try to interpret the answer itself and say something
-         * like "I'm not sure how to help with that" or something along those
-         * lines. So for future reference, whenever you use the onAsrResult()
-         * method with the Robot.askQuestion() method you need to make sure you
-         * call finishConversation() right before you make the robot speak again.
-         * this is what has worked so far.
+         * like "I'm not sure how to help with that". So for future reference,
+         * whenever you use the onAsrResult() method with the Robot.askQuestion()
+         * method you need to make sure you call finishConversation() right before
+         * you make the robot speak again. This is what has worked so far.
          */
         mRobot.finishConversation();
 
         if(asrResult.toLowerCase().contains("no")) {
 
-            goToHomeBase();
+            returnHome();
 
         } else if (asrResult.toLowerCase().contains("yes") || asrResult.toLowerCase().contains("yeah") ||
                 asrResult.toLowerCase().contains("sure")) {
@@ -194,21 +176,20 @@ public class NavigationCompleteFragment extends Fragment
 
             @Override
             public void onComplete() {
-                goToHomeBase();
+                returnHome();
             }
         });
 
     }
 
-    private void goToHomeBase() {
-
+    private void returnHome() {
         TtsRequest request = TtsRequest.create("Goodbye, have a nice day.", false);
         mRobot.speak(request);
 
         removeObservers();
 
-        // For now HOME_BASE is urbes.
-        mRobot.goTo(HOME_BASE);
+        Intent intent = new Intent(getActivity(), ReturnHomeActivity.class);
+        startActivity(intent);
     }
 
 
@@ -220,10 +201,6 @@ public class NavigationCompleteFragment extends Fragment
         transaction.commit();
     }
 
-    private void goToHomeScreenActivity() {
-        Intent intent = new Intent(getActivity(), HomeScreenActivity.class);
-        startActivity(intent);
-    }
 
 
     private void initButtons(View view) {
@@ -240,7 +217,7 @@ public class NavigationCompleteFragment extends Fragment
         noButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                goToHomeBase();
+                returnHome();
             }
         });
     }
