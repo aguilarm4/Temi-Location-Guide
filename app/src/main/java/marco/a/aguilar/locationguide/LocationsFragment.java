@@ -45,13 +45,6 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
-
-/**
- * todo: Create a timer that makes application go back to WelcomeFragment
- * after a minute or two, if the user hasn't done anything yet.
- *
- */
-
 public class LocationsFragment extends Fragment
     implements OnRobotReadyListener, OnGoToLocationStatusChangedListener, Robot.AsrListener,
         LocationsAdapter.OnLocationItemClickedListener {
@@ -63,23 +56,18 @@ public class LocationsFragment extends Fragment
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
-
     private ArrayList<String> mLocations;
-    private String searchViewVoiceQuery;
-
-    private SearchView searchView;
 
     // Temi
     private Robot mRobot;
 
-    private Boolean mIsCompletingTrip = false;
-    private boolean mWasInterrupted = false;
-
-    private SharedPreferences mSharedPreferences;
-
     // RxJava
     private Observable<Long> mLocationFragmentIntervalObservable;
     private CompositeDisposable mLocationFragmentDisposables;
+
+    private Boolean mIsCompletingTrip = false;
+    private SharedPreferences mSharedPreferences;
+    private SearchView searchView;
 
 
     @Override
@@ -92,10 +80,15 @@ public class LocationsFragment extends Fragment
         );
 
         mLocationFragmentDisposables = new CompositeDisposable();
+
         /**
-         * Executes once after 3 minutes, if Temi is not currently
-         * completing a trip, then it will execute the code inside
-         * onNext()
+         * Executes after 3 minutes. If Temi is not completing a trip (is idle),
+         * then onComplete() is called and the application goes through ReturnHomeActivity
+         * and then HomeScreenActivity.
+         *
+         * Go the idea from these posts:
+         *      https://stackoverflow.com/questions/39323167/how-to-stop-interval-from-observable
+         *      https://stackoverflow.com/questions/41070443/rxjava-how-to-stop-and-resume-a-hot-observable-interval
          */
         mLocationFragmentIntervalObservable = Observable
                 .interval(3, TimeUnit.MINUTES)
@@ -113,7 +106,6 @@ public class LocationsFragment extends Fragment
 
             @Override
             public void onNext(@NonNull Long aLong) {
-                Log.d(TAG, "onNext: RxJava onNext() called...");
             }
 
             @Override
@@ -123,7 +115,6 @@ public class LocationsFragment extends Fragment
 
             @Override
             public void onComplete() {
-                Log.d(TAG, "onComplete: RxJava onComplete() called...");
                 // Return Temi Home.
                 Intent intent = new Intent(getActivity(), ReturnHomeActivity.class);
                 startActivity(intent);
@@ -156,17 +147,13 @@ public class LocationsFragment extends Fragment
         mAdapter = new LocationsAdapter(mLocations, this);
         mRecyclerView.setAdapter(mAdapter);
 
-        /**
-         * Needs to be called AFTER initializing mAdapter
-         */
         initButtons(view);
+
+        // Needs to be called AFTER initializing mAdapter
         initSearchView(view);
 
-
-        // Inflate the layout for this fragment
         return view;
     }
-
 
     public void onStart() {
         super.onStart();
@@ -181,7 +168,6 @@ public class LocationsFragment extends Fragment
         Robot.getInstance().addAsrListener(this);
     }
 
-
     public void onStop() {
         super.onStop();
         Robot.getInstance().removeOnRobotReadyListener(this);
@@ -195,48 +181,28 @@ public class LocationsFragment extends Fragment
         mLocationFragmentDisposables.clear();
     }
 
-
-    private void initButtons(View view) {
-        Button voiceSearchButton = view.findViewById(R.id.voice_search_button);
-
-        voiceSearchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mRobot.askQuestion("What is your location?");
-            }
-        });
-
-    }
-
-    /**
-     * Needed to make onStart and onStop public for this to work.
-     */
+    // Need to make onStart() and onStop() public for this to work.
     @Override
     public void onRobotReady(boolean isReady) {
         if (isReady) {
             try {
-                // Tilt Robot head so the user doesn't have a hard time pressing buttons.
+                // Tilt Temi's head has an easy time pressing buttons.
                 mRobot.tiltAngle(55);
 
-                // Temi will say this every time the user goes to LocationsFragment
-                TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
-                        " enter a search if you'd like.", true);
-
-                mWasInterrupted = mSharedPreferences.getBoolean(
+                boolean wasInterrupted = mSharedPreferences.getBoolean(
                         getString(R.string.locations_fragment_was_interrupted),
                         false);
 
-                Log.d(TAG, "onRobotReady: mWasInterrupted: " + mWasInterrupted);
-
-                if(!mWasInterrupted)
+                if(!wasInterrupted) {
+                    TtsRequest request = TtsRequest.create("Scroll down to select a location. You may also" +
+                            " enter a search if you'd like.", true);
                     mRobot.speak(request);
+                }
 
                 mLocations.clear();
                 mLocations.addAll(mRobot.getLocations());
 
-                /**
-                 * Sort locations before adding them to the adapter.
-                 */
+                // Sort locations before notifying adapter and setting the copy.
                 Collections.sort(mLocations, new Comparator<String>() {
                     @Override
                     public int compare(String location1, String location2) {
@@ -291,40 +257,26 @@ public class LocationsFragment extends Fragment
     }
 
 
-    /**
-     * Using takeWhile() with a mIsCompletingTrip.
-     * https://stackoverflow.com/questions/39323167/how-to-stop-interval-from-observable
-     * https://stackoverflow.com/questions/41070443/rxjava-how-to-stop-and-resume-a-hot-observable-interval
-     */
     @Override
     public void onGoToLocationStatusChanged(String location, String status, int descriptionId, String description) {
-        Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
-                " descriptionId: " + descriptionId + " description: " + description);
-
-        Log.d(TAG, "onGoToLocationStatusChanged: mIsCompletingTrip: " + mIsCompletingTrip);
 
         /**
-         * Calculating/START are always the first statuses printed when the user selects
+         * CALCULATING/START are always the first statuses printed when the user selects
          * a location to go to or when it starts up again (When user selects retry)
-         * so, this is where we should add the mIsCompletingTrip change
+         * So this is where we should set mIsCompletingTrip to true"
          *
-         * We want to use this so that our Observable can determine whether to go
-         * to Home Base or not, we don't need to toggle this value to "false" anywhere
-         * because there are only 2 cases when it's false:
-         *      1) The user comes to this view for the first time, in which case mIsCompletingTrip
-         *      is already initialized as "false"
+         * Our Observable will determine whether to go to ReturnHomeActivity based on mIsCompletingTrip
+         * Don't set mIsCompletingTrip to "false" anywhere bc there are 2 cases when it'll hold this value:
          *
-         *      2) The user selects "Yes" or "No" when Temi is blocked, and the activity will
-         *      start up again, which means mIsCompletingTrip will be initialized again as "false"
+         *      1) LocationFragment opens for the first time, thus mIsCompletingTrip is initialized as "false"
+         *
+         *      2) The user selects "Yes" or "No" after the Temi OS interrupts the application. The fragment will
+         *      start up again and mIsCompletingTrip will be initialized again as "false"
          */
         if(status.equals(OnGoToLocationStatusChangedListener.CALCULATING) || status.equals(OnGoToLocationStatusChangedListener.START))
-            Log.d(TAG, "onGoToLocationStatusChanged: Switching mIsCompletingTrip to true...");
             mIsCompletingTrip = true;
 
-        /**
-         * In both situation of completing a trip, Home Base or not, we want to reset
-         * the value for mWasInterrupted.
-         */
+        // Reset wasInterrupted for the next trip
         if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE)) {
             SharedPreferences.Editor editor = mSharedPreferences.edit();
             editor.putBoolean(getString(R.string.locations_fragment_was_interrupted), false);
@@ -341,11 +293,11 @@ public class LocationsFragment extends Fragment
         }
 
         /**
-         * Save mWasInterrupted value to true
+         * Using wasInterrupted to determine whether Temi should speak when
+         * starting a trip. In the case where it couldn't find its destination,
+         * we don't want Temi to speak again when Temi returns to this Fragment.
          */
         if(status.equals(OnGoToLocationStatusChangedListener.ABORT)) {
-            Log.d(TAG, "onGoToLocationStatusChanged: Temi was interrupted");
-
             SharedPreferences.Editor editor = mSharedPreferences.edit();
             editor.putBoolean(getString(R.string.locations_fragment_was_interrupted), true);
             editor.apply();
@@ -370,12 +322,9 @@ public class LocationsFragment extends Fragment
         startActivity(intent);
     }
 
-
     private void initSearchView(View view) {
-        // This will stop working if user rotates the device...need to do more research on this.
         // This is used to make the whole search bar clickable.
         searchView = (SearchView) view.findViewById(R.id.search_view);
-
         searchView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -384,11 +333,12 @@ public class LocationsFragment extends Fragment
         });
 
 
-        // Make sure mAdapter is initialized before calling initSearchView()
+        // mAdapter must be initialized before calling initSearchView()
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 ((LocationsAdapter) mAdapter).filter(query);
+                // Return "false" to close keyboard when clicking the search button.
                 return false;
             }
 
@@ -398,6 +348,18 @@ public class LocationsFragment extends Fragment
                 return true;
             }
         });
+    }
+
+    private void initButtons(View view) {
+        Button voiceSearchButton = view.findViewById(R.id.voice_search_button);
+
+        voiceSearchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mRobot.askQuestion("What is your location?");
+            }
+        });
+
     }
 
     @Override

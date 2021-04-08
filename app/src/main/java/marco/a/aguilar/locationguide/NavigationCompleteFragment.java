@@ -39,7 +39,6 @@ public class NavigationCompleteFragment extends Fragment
     private static final String TAG = "NavCompleteFragment";
     private static final String HOME_BASE = "home base";
 
-    // Member variables
     Robot mRobot;
 
     // RxJava
@@ -89,8 +88,8 @@ public class NavigationCompleteFragment extends Fragment
     }
 
     /**
-     * It seems like if you want to call methods associated with the Temi SDK,
-     * you need to make sure that you call it inside onRobotReady().
+     * In order to call Temi SDK methods as soon as the Activity/Fragment opens,
+     * you need to call them inside onRobotReady() when isReady is "true"
      */
     @Override
     public void onRobotReady(boolean isReady) {
@@ -107,8 +106,6 @@ public class NavigationCompleteFragment extends Fragment
 
     @Override
     public void onAsrResult(@NotNull String asrResult) {
-        Log.d(TAG, "onAsrResult: " + asrResult);
-
         /**
          * IMPORTANT!!! Need to call finishConversation() or else
          * Temi will try to interpret the answer itself and say something
@@ -120,12 +117,10 @@ public class NavigationCompleteFragment extends Fragment
         mRobot.finishConversation();
 
         if(asrResult.toLowerCase().contains("no")) {
-
             returnHome();
 
         } else if (asrResult.toLowerCase().contains("yes") || asrResult.toLowerCase().contains("yeah") ||
                 asrResult.toLowerCase().contains("sure")) {
-
             goToLocationsFragment();
 
         } else {
@@ -134,19 +129,7 @@ public class NavigationCompleteFragment extends Fragment
 
             mRobot.speak(request);
         }
-
-        /**
-         * todo: Check if string equals "yes" or "no" (make sure to lowercase asrResult just in case)
-         * and based on results, call goToHomeBase() or goToLocationsFragment()
-         *
-         * todo: Create an infinite loop if Temi is unable to understand what the user is saying.
-         *
-         * You can call askQuestion() again but before that you can have the robot speak and say
-         * "I'm sorry, I couldn't understand, please respond with a Yes or No."
-         */
-
     }
-
 
     /**
      * Uses RxJava to ask user if they need anymore help (onSubscribe). Then
@@ -154,7 +137,6 @@ public class NavigationCompleteFragment extends Fragment
      * time, it will call goToHomeBase() (onComplete).
      */
     private void navigationCompletePrompt() {
-
         mIntervalObservable.subscribe(new Observer<Long>() {
             @Override
             public void onSubscribe(@NonNull Disposable d) {
@@ -165,7 +147,6 @@ public class NavigationCompleteFragment extends Fragment
 
             @Override
             public void onNext(@NonNull Long aLong) {
-                Log.d(TAG, "onNext: aLong" + aLong);
                 mRobot.askQuestion("We have arrived to your location. Is there anything else I can help you with?");
             }
 
@@ -179,7 +160,6 @@ public class NavigationCompleteFragment extends Fragment
                 returnHome();
             }
         });
-
     }
 
     private void returnHome() {

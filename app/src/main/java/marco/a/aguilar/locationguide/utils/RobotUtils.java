@@ -9,7 +9,7 @@ public class RobotUtils {
         /**
          * Requirements for turning on Detection Mode:
          *  1) App must be the Kiosk app
-         *  2) "Settings" permission
+         *  2) App must have "Settings" permission
          */
         return robot.isSelectedKioskApp() && (robot.checkSelfPermission(Permission.SETTINGS) == Permission.GRANTED);
     }

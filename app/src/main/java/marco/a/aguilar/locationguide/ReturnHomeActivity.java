@@ -42,27 +42,18 @@ public class ReturnHomeActivity extends AppCompatActivity
     }
 
     /**
-     * Go back to WelcomeFragment when Temi completes its trip to HOME_BASE.
-     *
-     * ToDo: Log status and see when the value is when Temi can't find it's way to
-     *  Home Base. If it's "ABORT" then we can do a lot with just that info (like
-     *  sending an email to a set of people)
-     *
-     * ToDo: Create a general Utility class that allows developers to send an email
-     *  to a list of Developers. Give it fields like "issue", "time", "date", etc.
+     * ToDo: Create a Utility class that sends an email to a list of Developers
+     *  when the status of the OnGoToLocationStatusChangedListener is ABORT.
+     *  Give it fields like "issue", "time", "date", etc.
      *  Then developers can implement this into their own code if they add another
      *  feature that might need this.
      */
     @Override
     public void onGoToLocationStatusChanged(@NotNull String location, @NotNull String status,
                                             int descriptionId, @NotNull String description) {
-        Log.d(TAG, "onGoToLocationStatusChanged: \n location: " + location + " status: " + status +
-                " descriptionId: " + descriptionId + " description: " + description);
 
         if(status.equals(OnGoToLocationStatusChangedListener.COMPLETE) && location.equals(HOME_BASE)) {
             goToHomeScreenActivity();
-        } else if(status.equals(OnGoToLocationStatusChangedListener.ABORT)) {
-            // ToDo: Call Utility class to send Email
         }
     }
 

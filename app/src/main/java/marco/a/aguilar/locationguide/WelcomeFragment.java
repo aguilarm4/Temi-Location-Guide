@@ -2,8 +2,6 @@ package marco.a.aguilar.locationguide;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,7 +13,6 @@ import com.robotemi.sdk.TtsRequest;
 import com.robotemi.sdk.listeners.OnDetectionStateChangedListener;
 import com.robotemi.sdk.listeners.OnRobotReadyListener;
 import com.robotemi.sdk.permission.Permission;
-
 
 import java.util.concurrent.TimeUnit;
 
@@ -29,20 +26,6 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import marco.a.aguilar.locationguide.utils.RobotUtils;
-
-/**
- * todo: Create functionality where application checks if Robot is in Home Base,
- * if not, then go to Home Base after waiting 1 minute or something.
- *  This will be useful if the Robot is in the home screen but someone has made
- *  the robot follow it somewhere else besides it's home base.
- *      So far the only way of doing this is via AutoReturn but right now Temi
- *      crashes whenever I try to set it up, it was working before but not anymore.
- *      Hopefully it'll be fixed with the next software update.
- *
- * I'm only calling checkDetectionModeRequirements() inside onRobotReady()
- * and restartDetectionMode() because by the time the code executes any other code
- * the developer or user should have already seen that something's wrong.
- */
 
 public class WelcomeFragment extends Fragment implements
         OnDetectionStateChangedListener, OnRobotReadyListener, Robot.AsrListener {
@@ -92,7 +75,6 @@ public class WelcomeFragment extends Fragment implements
     @Override
     public void onRobotReady(boolean isReady) {
         if(isReady) {
-
             // Tilt Robot head all up so that the text on the display is visible
             mRobot.tiltAngle(40);
 
@@ -104,7 +86,7 @@ public class WelcomeFragment extends Fragment implements
             } else {
                 /**
                  * Check for Kiosk and Settings requirements, if not then present toast to
-                 * let Developers know
+                 * let Developers know.
                  */
                 if(!(mRobot.isSelectedKioskApp())) {
                     Toast.makeText(getActivity(), "Must be selected as Kiosk app" +
@@ -124,12 +106,9 @@ public class WelcomeFragment extends Fragment implements
     public void onDetectionStateChanged(int state) {
 
         if(state == OnDetectionStateChangedListener.DETECTED) {
-
-            Log.d(TAG, "onDetectionStateChanged: User Detected ");
-
             /**
              * Turn off detection mode right after user detected.
-             * This will also keep the robot from following the User around.
+             * This will also prevent Temi from following the User around.
              */
             mRobot.setDetectionModeOn(false);
 
@@ -144,11 +123,6 @@ public class WelcomeFragment extends Fragment implements
         mDisposables.clear();
     }
 
-    /**
-     * todo: Change this to resetRobot() so that it checks if it's in home base
-     * too. If not then return to Home base and setDetectionMode on,
-     * if so, then just setDetectionMode on.
-     */
     private void restartDetectionMode() {
 
         mTimeDelayObservable.subscribe(new Observer<Long>() {
@@ -179,12 +153,9 @@ public class WelcomeFragment extends Fragment implements
 
         mRobot.finishConversation();
 
-        Log.d(TAG, "onAsrResult: asrResult " + asrResult);
-
         removeObservers();
 
         if(asrResult.toLowerCase().contains("no")) {
-
             restartDetectionMode();
 
             TtsRequest request = TtsRequest.create("Have a nice day!", true);
@@ -192,17 +163,16 @@ public class WelcomeFragment extends Fragment implements
 
         } else if (asrResult.toLowerCase().contains("yes") || asrResult.toLowerCase().contains("yeah") ||
                 asrResult.toLowerCase().contains("sure")) {
-            // Turn off detection mode just in case it was turned on again due to the
-            // delay inside onDetectionStateChanged()
+            // Turn off detection mode before entering next state.
             mRobot.setDetectionModeOn(false);
 
             Intent intent = new Intent(getActivity(), MainActivity.class);
             startActivity(intent);
-        } else {
 
+        } else {
             restartDetectionMode();
 
-            // Should create a loop
+            // Creates a loop for onAsrResult()
             mRobot.askQuestion("I'm sorry I couldn't understand. Please respond" +
                     " with a yes or no. Can I help you find your location?");
         }
