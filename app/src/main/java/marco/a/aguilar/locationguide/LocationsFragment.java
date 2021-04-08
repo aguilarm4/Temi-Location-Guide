@@ -157,12 +157,6 @@ public class LocationsFragment extends Fragment
 
     public void onStart() {
         super.onStart();
-        /**
-         * Calls onRobotReady(), even after the Temi robot is disturbed.
-         *
-         * When blocked, it will give the user 2 options
-         *  1)
-         */
         Robot.getInstance().addOnGoToLocationStatusChangedListener(this);
         Robot.getInstance().addOnRobotReadyListener(this);
         Robot.getInstance().addAsrListener(this);
